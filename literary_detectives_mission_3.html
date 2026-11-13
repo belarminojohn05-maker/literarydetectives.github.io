@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Literary Detectives — Mission 3: Solve the Literary Case</title>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#172A3A',
+                        ivory: '#F7F4ED',
+                        gold: '#C6A15B',
+                        slate: '#52616B',
+                        cardBg: '#FFFFFF',
+                        darkCard: '#1E3342'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #172A3A;
+            color: #172A3A;
+        }
+        @keyframes guideGlow {
+            0%, 100% {
+                box-shadow: 0 0 12px rgba(198, 161, 91, 0.6);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 24px rgba(198, 161, 91, 0.95);
+                transform: scale(1.02);
+            }
+        }
+        .guide-glow {
+            animation: guideGlow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-navy text-ivory antialiased selection:bg-gold selection:text-navy">
+
+    <!-- App Container -->
+    <div id="app" class="flex-1 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-navy border-b border-slate/30 py-4 px-6 flex items-center justify-between shadow-md">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gold flex items-center justify-center text-navy font-bold text-xl shadow-inner">
+                    🔍
+                </div>
+                <div>
+                    <h1 class="text-sm font-semibold tracking-wider text-gold uppercase">Literary Detectives • Grade 9 English</h1>
+                    <p class="text-lg font-bold text-ivory">Mission 3: Solve the Literary Case</p>
+                </div>
+            </div>
+            <div id="score-header" class="hidden items-center bg-darkCard px-4 py-2 rounded-xl border border-gold/40 shadow-sm">
+                <span class="text-xs text-slate-300 mr-2 uppercase tracking-wide">Score Ledger:</span>
+                <span id="header-score-val" class="text-gold font-bold text-lg">0</span>
+                <span class="text-xs text-slate-400 ml-1">/ 100 pts</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+            <div id="screen-container" class="w-full max-w-4xl bg-ivory text-navy rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[550px] transition-all duration-300">
+                <!-- Dynamic Screen Content inserted here by JavaScript -->
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-navy/80 border-t border-slate/30 py-3 px-6 text-center text-xs text-slate-400">
+            Literary Detectives Quest &bull; Interactive Literary Case Study &bull; Grade 9 English
+        </footer>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        // --- State Management ---
+        const state = {
+            currentScreen: 1,
+            score: 0,
+            screen2Stage: 1, // 1 = recap, 2 = routes
+            soundTrailCompleted: false,
+            meaningTrailCompleted: false,
+            meaningSelection: null, // Track explicit selection for Screen 8
+            tasks: {
+                audioForensics: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 15, solved: false },
+                patternLog: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 10, solved: false },
+                signalPathStep1: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 5, solved: false },
+                signalPathStep2: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 5, solved: false },
+                meaningMeterClass: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 5, solved: false },
+                meaningMeterInterp: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 10, solved: false },
+                sensoryTaste: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 5, solved: false, feedback: '', status: 'pending' },
+                sensoryTouch: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 5, solved: false, feedback: '', status: 'pending' },
+                verdict1: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 8, solved: false },
+                verdict2: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 8, solved: false },
+                verdict3: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 8, solved: false },
+                verdict4: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 8, solved: false },
+                verdict5: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 8, solved: false },
+                verdict6: { attempts: 0, maxAttempts: 2, points: 0, maxPoints: 0, solved: false } // Unscored Character Insight
+            },
+            verdictCurrentSubScreen: 1
+        };
+
+        // --- Sound Manager (Tone.js) ---
+        const synths = {};
+        let audioInitialized = false;
+
+        async function ensureAudio() {
+            if (!audioInitialized) {
+                await Tone.start();
+                synths.correct = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 1 }, volume: -6 }).toDestination();
+                audioInitialized = true;
+            }
+        }
+
+        function playSound(type) {
+            // Only play sound for correct answers as requested
+            if (type !== 'correct') return;
+            
+            ensureAudio().then(() => {
+                const now = Tone.now();
+                if (type === 'correct') synths.correct.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+            }).catch(e => console.warn("Audio error", e));
+        }
+
+        // --- Helper: Text-to-Speech ---
+        let isSpeechPaused = false;
+        let currentUtterance = null;
+        let lastPlayedText = "";
+
+        function playSpeech(text) {
+            playSound('click');
+            
+            // If already paused and text matches, resume
+            if (isSpeechPaused && currentUtterance && lastPlayedText === text) {
+                window.speechSynthesis.resume();
+                isSpeechPaused = false;
+                return;
+            }
+
+            // Otherwise, start fresh
+            window.speechSynthesis.cancel();
+            lastPlayedText = text;
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.rate = 0.95;
+            currentUtterance.onend = function() {
+                isSpeechPaused = false;
+            };
+            
+            window.speechSynthesis.speak(currentUtterance);
+            isSpeechPaused = false;
+        }
+
+        function pauseSpeech() {
+            playSound('click');
+            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                window.speechSynthesis.pause();
+                isSpeechPaused = true;
+            }
+        }
+
+        function stopSpeech(fromButton = false) {
+            if (fromButton) playSound('click');
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            currentUtterance = null;
+            isSpeechPaused = false;
+            lastPlayedText = "";
+        }
+
+        function replaySpeech(text) {
+            playSound('click');
+            window.speechSynthesis.cancel();
+            setTimeout(() => {
+                lastPlayedText = text;
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                currentUtterance.rate = 0.95;
+                currentUtterance.onend = function() {
+                    isSpeechPaused = false;
+                };
+                window.speechSynthesis.speak(currentUtterance);
+                isSpeechPaused = false;
+            }, 50);
+        }
+
+        function getAudioControls(text) {
+            const escapedText = text.replace(/'/g, "\\'");
+            return `
+                <div class="flex space-x-2">
+                    <button onclick="playSpeech('${escapedText}')" class="bg-gold/20 hover:bg-gold/30 text-navy px-3 py-1.5 rounded-lg text-xs font-bold transition-all">▶ PLAY</button>
+                    <button onclick="pauseSpeech()" class="bg-slate/10 hover:bg-slate/20 text-slate px-3 py-1.5 rounded-lg text-xs font-bold transition-all">⏸ PAUSE</button>
+                    <button onclick="stopSpeech(true)" class="bg-rose-100 hover:bg-rose-200 text-rose-900 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">⏹ STOP</button>
+                    <button onclick="replaySpeech('${escapedText}')" class="bg-blue-100 hover:bg-blue-200 text-blue-900 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">↺ REPLAY</button>
+                </div>
+            `;
+        }
+
+        // --- Helper: Recalculate Running Score Ledger ---
+        function updateScoreLedger() {
+            let total = 0;
+            for (let key in state.tasks) {
+                total += state.tasks[key].points || 0;
+            }
+            state.score = total;
+            const headerScore = document.getElementById('header-score-val');
+            if (headerScore) headerScore.textContent = state.score;
+            const scoreHeader = document.getElementById('score-header');
+            if (scoreHeader) {
+                if (state.currentScreen > 1 && state.currentScreen < 12) {
+                    scoreHeader.classList.remove('hidden');
+                    scoreHeader.classList.add('flex');
+                } else {
+                    scoreHeader.classList.remove('flex');
+                    scoreHeader.classList.add('hidden');
+                }
+            }
+        }
+
+        // --- Navigation Controller ---
+        function goToScreen(screenNum) {
+            playSound('nav');
+            stopSpeech(false);
+            state.currentScreen = screenNum;
+            updateScoreLedger();
+            renderScreen();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.revealRoutes = function() {
+            playSound('click');
+            state.screen2Stage = 2;
+            renderScreen();
+        };
+
+        // --- Render Dispatcher ---
+        function renderScreen() {
+            const container = document.getElementById('screen-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            switch(state.currentScreen) {
+                case 1: renderScreen1(container); break;
+                case 2: renderScreen2(container); break;
+                case 3: renderScreen3(container); break;
+                case 4: renderScreen4(container); break;
+                case 5: renderScreen5(container); break;
+                case 6: renderScreen6(container); break;
+                case 7: renderScreen7(container); break;
+                case 8: renderScreen8(container); break;
+                case 9: renderScreen9(container); break;
+                case 10: renderScreen10(container); break;
+                case 11: renderScreen11(container); break;
+                case 12: renderScreen12(container); break;
+                default: renderScreen1(container); break;
+            }
+            updateScoreLedger();
+        }
+
+        // ==========================================
+        // SCREEN 1: Open the Case
+        // ==========================================
+        function renderScreen1(container) {
+            container.innerHTML = `
+                <div class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-ivory to-stone-100 overflow-y-auto">
+                    <div class="w-24 h-24 bg-navy text-gold rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-xl animate-bounce shrink-0">
+                        🏮
+                    </div>
+                    <span class="bg-gold/20 text-navy font-semibold px-4 py-1 rounded-full text-xs uppercase tracking-widest mb-3">Grade 9 English Mission 3</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-navy mb-4">THE LANTERN AT BELL BRIDGE</h2>
+                    <p class="text-slate max-w-lg text-base sm:text-lg mb-6 leading-relaxed">
+                        A story has left behind a trail of clues. Find the evidence before you deliver your verdict. Target Competency: EN9LIT-I-1 (items f and k).
+                    </p>
+
+                    <div class="bg-white/80 p-5 rounded-2xl border border-slate/20 shadow-sm max-w-2xl w-full mb-8 text-left">
+                        <h3 class="text-sm font-bold text-navy uppercase tracking-wider mb-2 border-b border-slate/20 pb-2">Measurable Objectives:</h3>
+                        <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
+                            <li>Identify rhyme, repetition, alliteration, and anaphora by locating evidence in a literary passage.</li>
+                            <li>Interpret hyperbole, metaphor, and personification and explain their effects.</li>
+                            <li>Identify taste and touch imagery and explain how sensory details help readers imagine a scene.</li>
+                        </ul>
+                    </div>
+
+                    <button onclick="goToScreen(2)" class="bg-navy hover:bg-navy/90 text-ivory font-bold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center space-x-3 text-lg guide-glow">
+                        <span>OPEN CASE FILE</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // SCREEN 2: Choose Your Investigation Route
+        // ==========================================
+        function renderScreen2(container) {
+            const soundDone = state.soundTrailCompleted;
+            const meaningDone = state.meaningTrailCompleted;
+
+            if (state.screen2Stage === 1) {
+                container.innerHTML = `
+                    <div class="flex-1 p-8 flex flex-col justify-between overflow-y-auto">
+                        <div>
+                            <div class="flex justify-between items-center mb-6 border-b border-slate/20 pb-4">
+                                <span class="text-xs uppercase font-bold tracking-wider text-slate">Quick Recall</span>
+                            </div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-navy mb-4">Review the Clues</h2>
+                            
+                            <div class="space-y-4 mb-6">
+                                <div class="bg-white p-5 rounded-2xl border border-slate/20 shadow-sm">
+                                    <h3 class="font-bold text-navy mb-3 text-sm uppercase tracking-wider text-gold">Mission 1 — Hear the Clues</h3>
+                                    <ul class="text-sm text-slate-700 space-y-2">
+                                        <li><strong class="text-navy">Rhyme:</strong> words share ending sounds.</li>
+                                        <li><strong class="text-navy">Repetition:</strong> a word or phrase appears more than once.</li>
+                                        <li><strong class="text-navy">Alliteration:</strong> nearby words repeat an initial consonant sound.</li>
+                                        <li><strong class="text-navy">Anaphora:</strong> successive lines or clauses begin with the same word or phrase.</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-5 rounded-2xl border border-slate/20 shadow-sm">
+                                    <h3 class="font-bold text-navy mb-3 text-sm uppercase tracking-wider text-gold">Mission 2 — Decode the Hidden Meaning</h3>
+                                    <ul class="text-sm text-slate-700 space-y-2">
+                                        <li><strong class="text-navy">Hyperbole:</strong> deliberate exaggeration.</li>
+                                        <li><strong class="text-navy">Simile:</strong> comparison often signaled by like or as.</li>
+                                        <li><strong class="text-navy">Metaphor:</strong> direct comparison.</li>
+                                        <li><strong class="text-navy">Personification:</strong> a human quality or action is given to something nonhuman.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <p class="text-slate text-sm font-medium italic text-center mb-4">You have reviewed the clues. Now apply what you know to a new story.</p>
+                        </div>
+                        <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                            <button onclick="goToScreen(1)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                                ← Back
+                            </button>
+                            <button onclick="revealRoutes()" class="bg-navy hover:bg-navy/90 text-ivory guide-glow px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md">
+                                CONTINUE →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="flex-1 p-8 flex flex-col justify-between overflow-y-auto">
+                        <div>
+                            <div class="flex justify-between items-center mb-6 border-b border-slate/20 pb-4">
+                                <span class="text-xs uppercase font-bold tracking-wider text-slate">Case Map • Route Selection</span>
+                                <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">
+                                    Progress: Sound (${soundDone ? '✓ Completed' : 'Pending'}) | Meaning (${meaningDone ? '✓ Completed' : 'Pending'})
+                                </span>
+                            </div>
+                            <h2 class="text-2xl sm:text-3xl font-bold text-navy mb-3">Which trail will you investigate first?</h2>
+                            <p class="text-slate text-sm sm:text-base mb-8">
+                                Both trails are required; the choice changes order only. Complete both before proceeding to the final verdict.
+                            </p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <!-- Sound Trail Card -->
+                                <div onclick="goToScreen(3)" class="cursor-pointer bg-white border-2 ${soundDone ? 'border-emerald-600 bg-emerald-50/30' : 'border-gold/60 hover:border-navy'} rounded-2xl p-6 shadow-md transition-all flex flex-col justify-between group ${!soundDone ? 'guide-glow' : ''}">
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-2xl">🎵</span>
+                                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${soundDone ? 'bg-emerald-100 text-emerald-800' : 'bg-gold/20 text-navy'}">
+                                                ${soundDone ? 'Completed' : 'Available'}
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-navy mb-2 group-hover:text-gold transition-colors">Sound Trail</h3>
+                                        <p class="text-sm text-slate">Investigate rhyme, repetition, and anaphora clues from the passage audio.</p>
+                                    </div>
+                                    <div class="mt-6 text-sm font-bold text-navy flex items-center justify-end">
+                                        <span>${soundDone ? 'Review Sound Trail' : 'Enter Sound Trail'}</span> <span class="ml-2">→</span>
+                                    </div>
+                                </div>
+
+                                <!-- Meaning Trail Card -->
+                                <div onclick="goToScreen(8)" class="cursor-pointer bg-white border-2 ${meaningDone ? 'border-emerald-600 bg-emerald-50/30' : 'border-gold/60 hover:border-navy'} rounded-2xl p-6 shadow-md transition-all flex flex-col justify-between group ${soundDone && !meaningDone ? 'guide-glow' : ''}">
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-2xl">📖</span>
+                                            <span class="text-xs font-bold px-2.5 py-1 rounded-full ${meaningDone ? 'bg-emerald-100 text-emerald-800' : 'bg-gold/20 text-navy'}">
+                                                ${meaningDone ? 'Completed' : 'Available'}
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-navy mb-2 group-hover:text-gold transition-colors">Meaning Trail</h3>
+                                        <p class="text-sm text-slate">Investigate figurative meaning (ribbon metaphor) and sensory side quest clues.</p>
+                                    </div>
+                                    <div class="mt-6 text-sm font-bold text-navy flex items-center justify-end">
+                                        <span>${meaningDone ? 'Review Meaning Trail' : 'Enter Meaning Trail'}</span> <span class="ml-2">→</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                            <button onclick="state.screen2Stage = 1; renderScreen(); playSound('click');" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                                ← Quick Recall
+                            </button>
+                            <button onclick="checkProceedToVerdict()" id="to-verdict-btn" class="${(soundDone && meaningDone) ? 'bg-navy hover:bg-navy/90 text-ivory guide-glow cursor-pointer' : 'bg-slate/30 text-slate-500 cursor-not-allowed'} px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md">
+                                Proceed to Final Verdict →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function checkProceedToVerdict() {
+            if (state.soundTrailCompleted && state.meaningTrailCompleted) {
+                state.verdictCurrentSubScreen = 1; // Reset sub-screen state to prevent blank screen on review
+                goToScreen(10);
+            } else {
+                playSound('wrong');
+                showModal("Trails Required", "Please complete both the Sound Trail and Meaning Trail before unlocking the Final Verdict.");
+            }
+        }
+
+        // ==========================================
+        // SCREEN 3: Read the Case — Part One
+        // ==========================================
+        function renderScreen3(container) {
+            const part1Text = "At dusk, Mara hurried toward the old bridge. Cold stones pressed against her palms as she held the lantern. Bright branches bent above the black bank. Wait for me, wait for me, she called. She climbed through the night, holding the lantern tight.";
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Case Reading • Part 1 of 2</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-navy/10 text-navy rounded-full">The Lantern at Bell Bridge</span>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                                <h3 class="text-lg font-bold text-navy">Passage Excerpt — Part One</h3>
+                                ${getAudioControls(part1Text)}
+                            </div>
+                            <div class="text-navy/90 text-lg leading-relaxed font-serif space-y-3 bg-ivory/60 p-6 rounded-xl border border-gold/30">
+                                <p>At dusk, Mara hurried toward the old bridge.</p>
+                                <p>Cold stones pressed against her palms as she held the lantern.</p>
+                                <p>Bright branches bent above the black bank.</p>
+                                <p>“Wait for me, wait for me,” she called.</p>
+                                <p>She climbed through the night,<br>holding the lantern tight.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(2)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Case Map
+                        </button>
+                        <button onclick="goToScreen(4)" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Next Part (Part 2) →
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // SCREEN 4: Read the Case — Part Two
+        // ==========================================
+        function renderScreen4(container) {
+            const part2Text = "No light was left. No road was clear. No voice was near. The wind whispered warnings through the trees. Below, the river was a ribbon of silver beneath the moon. I have a thousand fears, Mara said, but I will not turn back. She tasted a tart berry and felt the rough rope scrape her skin. At last, the lantern woke, and the village sighed with relief.";
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Case Reading • Part 2 of 2</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-navy/10 text-navy rounded-full">The Lantern at Bell Bridge</span>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                                <h3 class="text-lg font-bold text-navy">Passage Excerpt — Part Two</h3>
+                                ${getAudioControls(part2Text)}
+                            </div>
+                            <div class="text-navy/90 text-base sm:text-lg leading-relaxed font-serif space-y-3 bg-ivory/60 p-6 rounded-xl border border-gold/30">
+                                <p>No light was left. No road was clear. No voice was near.</p>
+                                <p>The wind whispered warnings through the trees.</p>
+                                <p>Below, the river was a ribbon of silver beneath the moon.</p>
+                                <p>“I have a thousand fears,” Mara said, “but I will not turn back.”</p>
+                                <p>She tasted a tart berry and felt the rough rope scrape her skin.</p>
+                                <p>At last, the lantern woke, and the village sighed with relief.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(3)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Part One
+                        </button>
+                        <button onclick="goToScreen(5)" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Begin Sound Trail Activities →
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // SCREEN 5: Sound Trail — Audio Forensics (Rhyme)
+        // ==========================================
+        function renderScreen5(container) {
+            const task = state.tasks.audioForensics;
+            const excerptText = "She climbed through the night, holding the lantern tight.";
+            
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Sound Trail • Activity 1 of 3</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">Audio Forensics (Rhyme)</span>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-navy mb-2">Identify the Rhyme Clue</h2>
+                        <p class="text-slate text-sm mb-6">Listen to the two-line clue from the passage and type the two words that rhyme separated by a slash (e.g., format example: <span class="italic font-semibold">moon / spoon</span>).</p>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-4">
+                                <span class="text-xs font-bold uppercase text-slate">Passage Excerpt</span>
+                                ${getAudioControls(excerptText)}
+                            </div>
+                            <blockquote class="font-serif text-lg italic text-navy/90 bg-ivory p-4 rounded-xl border border-gold/30 mb-6">
+                                “She climbed through the night,<br>holding the lantern tight.”
+                            </blockquote>
+
+                            <div class="space-y-4">
+                                <label class="block text-sm font-semibold text-navy">Type your answer here:</label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <input type="text" id="rhyme-input" placeholder="Type your answer here." value="${task.solved || task.attempts > 0 ? document.getElementById('rhyme-input')?.value || '' : ''}" ${task.solved ? 'disabled' : ''} class="flex-1 px-4 py-3 rounded-xl border border-slate/40 focus:outline-none focus:border-navy text-navy font-medium">
+                                    <button onclick="submitAudioForensics()" ${task.solved ? 'disabled' : ''} class="${task.solved ? 'bg-emerald-600 text-white' : 'bg-navy hover:bg-navy/90 text-ivory guide-glow'} px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+                                        ${task.solved ? 'Solved ✓' : 'Verify Answer'}
+                                    </button>
+                                </div>
+                                <div id="rhyme-feedback" class="mt-4 text-sm font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(4)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Back
+                        </button>
+                        <button onclick="goToScreen(6)" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Next Activity (Pattern Log) →
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            if (task.solved && task.points > 0) {
+                document.getElementById('rhyme-feedback').innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> “night” and “tight” share an ending sound. (Earned ${task.points}/15 pts)</div>`;
+            } else if (task.solved && task.points === 0) {
+                document.getElementById('rhyme-feedback').innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the clue together.</strong> The correct rhyming words are <strong>night / tight</strong>.</div>`;
+            } else if (task.attempts === 1) {
+                document.getElementById('rhyme-feedback').innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Listen to the ending sounds of the two lines. Try again!</div>`;
+            }
+        }
+
+        function submitAudioForensics() {
+            playSound('click');
+            const task = state.tasks.audioForensics;
+            if (task.solved) return;
+            const inputEl = document.getElementById('rhyme-input');
+            const val = inputEl.value;
+            
+            // Normalize: lowercase, replace punctuation/separators with space, remove 'and', trim, split and sort
+            let clean = val.toLowerCase().replace(/[.,/]/g, ' ').replace(/\band\b/g, ' ').replace(/\s+/g, ' ').trim();
+            let parts = clean.split(' ').sort();
+            const isCorrect = (parts.length === 2 && parts[0] === 'night' && parts[1] === 'tight');
+
+            task.attempts++;
+            const feedbackEl = document.getElementById('rhyme-feedback');
+
+            if (isCorrect) {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 15 : 8;
+                updateScoreLedger();
+                feedbackEl.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> “night” and “tight” share an ending sound. (Earned ${task.points} pts) 🏆 <span class="font-bold text-gold">Sound Listener Badge Unlocked!</span></div>`;
+                inputEl.disabled = true;
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    feedbackEl.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Listen to the ending sounds of the two lines. You have 1 attempt remaining.</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    feedbackEl.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the clue together.</strong> The correct rhyming words are <strong>night / tight</strong>.</div>`;
+                    inputEl.disabled = true;
+                    renderScreen();
+                }
+            }
+        }
+
+        // ==========================================
+        // SCREEN 6: Pattern Log — Record Repeated Phrase
+        // ==========================================
+        function renderScreen6(container) {
+            const task = state.tasks.patternLog;
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Sound Trail • Activity 2 of 3</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">Pattern Log (Repetition)</span>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-navy mb-2">Record the Repeated Phrase</h2>
+                        <p class="text-slate text-sm mb-6">Mara calls out in a hurry. Enter the exact phrase she repeats in the passage.</p>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <div class="text-xs font-bold uppercase text-slate mb-2">Passage Clue</div>
+                            <blockquote class="font-serif text-lg italic text-navy/90 bg-ivory p-4 rounded-xl border border-gold/30 mb-6">
+                                “Wait for me, wait for me,” she called.
+                            </blockquote>
+
+                            <div class="space-y-4">
+                                <label class="block text-sm font-semibold text-navy">Type your answer here:</label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <input type="text" id="repetition-input" placeholder="Type your answer here." value="${task.solved || task.attempts > 0 ? document.getElementById('repetition-input')?.value || '' : ''}" ${task.solved ? 'disabled' : ''} class="flex-1 px-4 py-3 rounded-xl border border-slate/40 focus:outline-none focus:border-navy text-navy font-medium">
+                                    <button onclick="submitPatternLog()" ${task.solved ? 'disabled' : ''} class="${task.solved ? 'bg-emerald-600 text-white' : 'bg-navy hover:bg-navy/90 text-ivory guide-glow'} px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+                                        ${task.solved ? 'Solved ✓' : 'Verify Answer'}
+                                    </button>
+                                </div>
+                                <div id="repetition-feedback" class="mt-4 text-sm font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(5)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Audio Forensics
+                        </button>
+                        <button onclick="goToScreen(7)" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Next Activity (Signal Path) →
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (task.solved && task.points > 0) {
+                document.getElementById('repetition-feedback').innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> The repeated phrase emphasizes urgency. (Earned ${task.points}/10 pts)</div>`;
+            } else if (task.solved && task.points === 0) {
+                document.getElementById('repetition-feedback').innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the clue together.</strong> The exact phrase is <strong>“Wait for me”</strong>.</div>`;
+            } else if (task.attempts === 1) {
+                document.getElementById('repetition-feedback').innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Look at the quoted words and find the phrase that appears twice. Try again!</div>`;
+            }
+        }
+
+        function submitPatternLog() {
+            playSound('click');
+            const task = state.tasks.patternLog;
+            if (task.solved) return;
+            const inputEl = document.getElementById('repetition-input');
+            const val = inputEl.value.trim().toLowerCase();
+            const clean = val.replace(/[^a-z]/g, '');
+            const isCorrect = (clean === 'waitforme' || clean === 'waitformewaitforme');
+
+            task.attempts++;
+            const feedbackEl = document.getElementById('repetition-feedback');
+
+            if (isCorrect) {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 10 : 5;
+                updateScoreLedger();
+                feedbackEl.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> The exact phrase “Wait for me” repeats to show urgency. (Earned ${task.points} pts)</div>`;
+                inputEl.disabled = true;
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    feedbackEl.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Look at the quoted words and find the phrase that appears twice.</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    feedbackEl.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the clue together.</strong> The exact phrase is <strong>“Wait for me”</strong>.</div>`;
+                    inputEl.disabled = true;
+                    renderScreen();
+                }
+            }
+        }
+
+        // ==========================================
+        // SCREEN 7: Signal Path — Trace the Repeated Opening (Anaphora)
+        // ==========================================
+        function renderScreen7(container) {
+            const step1 = state.tasks.signalPathStep1;
+            const step2 = state.tasks.signalPathStep2;
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Sound Trail • Activity 3 of 3</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">Signal Path (Anaphora)</span>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-navy mb-2">Trace the Repeated Opening</h2>
+                        <p class="text-slate text-sm mb-6">Examine the passage excerpt below and follow the step-by-step signal path.</p>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <blockquote class="font-serif text-lg italic text-navy/90 bg-ivory p-4 rounded-xl border border-gold/30 mb-6">
+                                “No light was left. No road was clear. No voice was near.”
+                            </blockquote>
+
+                            <!-- STEP 1 -->
+                            <div class="mb-6 p-4 rounded-xl border ${step1.solved ? 'bg-emerald-50/50 border-emerald-300' : 'bg-slate/5 border-slate/20'}">
+                                <h3 class="font-bold text-navy mb-2">Step 1: Do all three clauses begin with the same word?</h3>
+                                <div class="space-y-2 mb-3">
+                                    <label class="flex items-center space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="signal_step1" value="YES" onclick="playSound('click')" ${step1.solved ? 'disabled' : ''} class="text-navy focus:ring-navy">
+                                        <span class="font-medium text-navy">YES — They begin with the same word.</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="signal_step1" value="NO" onclick="playSound('click')" ${step1.solved ? 'disabled' : ''} class="text-navy focus:ring-navy">
+                                        <span class="font-medium text-navy">NO — They do not begin with the same word.</span>
+                                    </label>
+                                </div>
+                                <button onclick="submitSignalStep1()" ${step1.solved ? 'disabled' : ''} class="${step1.solved ? 'bg-emerald-600 text-white' : 'bg-navy hover:bg-navy/90 text-ivory ' + (!step1.solved ? 'guide-glow' : '')} px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm">
+                                    ${step1.solved ? 'Step 1 Complete ✓' : 'Verify Step 1'}
+                                </button>
+                                <div id="step1-feedback" class="mt-3 text-sm font-medium"></div>
+                            </div>
+
+                            <!-- STEP 2 -->
+                            <div id="step2-container" class="p-4 rounded-xl border ${step1.solved ? 'bg-slate/5 border-slate/20' : 'opacity-60 bg-slate/10 border-slate/20'}">
+                                <h3 class="font-bold text-navy mb-2">Step 2: Identify the specific literary pattern used by these successive clauses.</h3>
+                                <div class="space-y-2 mb-3">
+                                    <label class="flex items-center space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="signal_step2" value="Alliteration" onclick="playSound('click')" ${step2.solved || !step1.solved ? 'disabled' : ''} class="text-navy focus:ring-navy">
+                                        <span class="font-medium text-navy">Alliteration</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="signal_step2" value="Anaphora" onclick="playSound('click')" ${step2.solved || !step1.solved ? 'disabled' : ''} class="text-navy focus:ring-navy">
+                                        <span class="font-medium text-navy">Anaphora</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="signal_step2" value="Hyperbole" onclick="playSound('click')" ${step2.solved || !step1.solved ? 'disabled' : ''} class="text-navy focus:ring-navy">
+                                        <span class="font-medium text-navy">Hyperbole</span>
+                                    </label>
+                                </div>
+                                <button onclick="submitSignalStep2()" ${step2.solved || !step1.solved ? 'disabled' : ''} class="${step2.solved ? 'bg-emerald-600 text-white' : (step1.solved && !step2.solved ? 'bg-navy hover:bg-navy/90 text-ivory guide-glow' : 'bg-slate/30 text-slate-500')} px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm">
+                                    ${step2.solved ? 'Step 2 Complete ✓' : 'Verify Step 2'}
+                                </button>
+                                <div id="step2-feedback" class="mt-3 text-sm font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(6)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Pattern Log
+                        </button>
+                        <button onclick="completeSoundTrail()" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Complete Sound Trail →
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (step1.solved && step1.points > 0) {
+                document.getElementById('step1-feedback').innerHTML = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Yes.</strong> All three clauses begin with the word 'No'. (Earned ${step1.points}/5 pts)</div>`;
+            } else if (step1.solved && step1.points === 0) {
+                document.getElementById('step1-feedback').innerHTML = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200"><strong>Nice try—let’s trace the openings together.</strong> All three clauses begin with the word <strong>'No'</strong>.</div>`;
+            }
+
+            if (step2.solved && step2.points > 0) {
+                document.getElementById('step2-feedback').innerHTML = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> Anaphora is the deliberate repetition of the first part. (Earned ${step2.points}/5 pts) 🏆 <span class="font-bold text-gold">Pattern Tracker Badge Unlocked!</span></div>`;
+            } else if (step2.solved && step2.points === 0) {
+                document.getElementById('step2-feedback').innerHTML = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200"><strong>Nice try—let’s look at the clue together.</strong> The pattern is <strong>Anaphora</strong>.</div>`;
+            }
+        }
+
+        function submitSignalStep1() {
+            playSound('click');
+            const step1 = state.tasks.signalPathStep1;
+            if (step1.solved) return;
+            const selected = document.querySelector('input[name="signal_step1"]:checked');
+            if (!selected) {
+                showModal("Selection Required", "Please select YES or NO before verifying Step 1.");
+                return;
+            }
+
+            step1.attempts++;
+            if (selected.value === 'YES') {
+                playSound('correct');
+                step1.solved = true;
+                step1.points = (step1.attempts === 1) ? 5 : 3;
+                updateScoreLedger();
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (step1.attempts < step1.maxAttempts) {
+                    document.getElementById('step1-feedback').innerHTML = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Look at the first word of each of the three clauses. Try again!</div>`;
+                } else {
+                    step1.solved = true;
+                    step1.points = 0;
+                    updateScoreLedger();
+                    renderScreen();
+                }
+            }
+        }
+
+        function submitSignalStep2() {
+            playSound('click');
+            const step2 = state.tasks.signalPathStep2;
+            if (step2.solved) return;
+            const selected = document.querySelector('input[name="signal_step2"]:checked');
+            if (!selected) {
+                showModal("Selection Required", "Please select a literary pattern before verifying Step 2.");
+                return;
+            }
+
+            step2.attempts++;
+            if (selected.value === 'Anaphora') {
+                playSound('correct');
+                step2.solved = true;
+                step2.points = (step2.attempts === 1) ? 5 : 3;
+                updateScoreLedger();
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (step2.attempts < step2.maxAttempts) {
+                    document.getElementById('step2-feedback').innerHTML = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> The same word appears at the beginning of successive clauses. Try again!</div>`;
+                } else {
+                    step2.solved = true;
+                    step2.points = 0;
+                    updateScoreLedger();
+                    renderScreen();
+                }
+            }
+        }
+
+        function completeSoundTrail() {
+            state.soundTrailCompleted = true;
+            goToScreen(2);
+        }
+
+        // ==========================================
+        // SCREEN 8: Meaning Trail — Meaning Meter (Metaphor)
+        // ==========================================
+        function renderScreen8(container) {
+            const classTask = state.tasks.meaningMeterClass;
+            const interpTask = state.tasks.meaningMeterInterp;
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Meaning Trail • Activity 1 of 2</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">Meaning Meter (Metaphor)</span>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-navy mb-2">Set the Meaning Meter</h2>
+                        <p class="text-slate text-sm mb-6">Analyze the river description and determine how it should be interpreted.</p>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <blockquote class="font-serif text-lg italic text-navy/90 bg-ivory p-4 rounded-xl border border-gold/30 mb-6">
+                                “Below, the river was a ribbon of silver beneath the moon.”
+                            </blockquote>
+
+                            <!-- Meaning Meter Interactive Tool -->
+                            <div class="mb-6 p-5 rounded-xl border ${classTask.solved ? 'bg-emerald-50/50 border-emerald-300' : 'bg-slate/5 border-slate/20'}">
+                                <h3 class="font-bold text-navy mb-2">Part A: Select the Classification</h3>
+                                <p class="text-xs text-slate mb-4">Choose a zone to classify the expression:</p>
+                                
+                                <div class="flex gap-4 mb-4">
+                                    <button onclick="setMeterValue('Literal')" ${classTask.solved ? 'disabled' : ''} class="flex-1 py-3 rounded-lg border-2 text-sm font-bold transition-all ${state.meaningSelection === 'Literal' ? 'bg-blue-100 border-blue-500 text-blue-900 shadow-inner' : 'bg-white border-slate/20 text-slate-600 hover:border-blue-300 hover:bg-blue-50'}">
+                                        LITERAL
+                                    </button>
+                                    <button onclick="setMeterValue('Figurative')" ${classTask.solved ? 'disabled' : ''} class="flex-1 py-3 rounded-lg border-2 text-sm font-bold transition-all ${state.meaningSelection === 'Figurative' ? 'bg-amber-100 border-amber-500 text-amber-900 shadow-inner' : 'bg-white border-slate/20 text-slate-600 hover:border-amber-300 hover:bg-amber-50'}">
+                                        FIGURATIVE
+                                    </button>
+                                </div>
+
+                                <button onclick="submitMeaningClass()" ${classTask.solved || !state.meaningSelection ? 'disabled' : ''} class="${classTask.solved ? 'bg-emerald-600 text-white' : (state.meaningSelection ? 'bg-navy hover:bg-navy/90 text-ivory guide-glow' : 'bg-slate/30 text-slate-500')} px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm">
+                                    ${classTask.solved ? 'Classification Verified ✓' : 'Confirm Selection'}
+                                </button>
+                                <div id="class-feedback" class="mt-3 text-sm font-medium"></div>
+                            </div>
+
+                            <!-- Part B: Interpretation -->
+                            <div id="interp-box" class="p-5 rounded-xl border ${classTask.solved ? 'bg-slate/5 border-slate/20' : 'opacity-60 bg-slate/10 border-slate/20'}">
+                                <h3 class="font-bold text-navy mb-2">Part B: How should a reader interpret this description?</h3>
+                                <div class="space-y-2 mb-4">
+                                    <label class="flex items-start space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="meaning_interp" value="A" onclick="playSound('click')" ${interpTask.solved || !classTask.solved ? 'disabled' : ''} class="mt-1 text-navy">
+                                        <span class="text-sm font-medium text-navy">A) The river is literally made of woven silver fabric.</span>
+                                    </label>
+                                    <label class="flex items-start space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="meaning_interp" value="B" onclick="playSound('click')" ${interpTask.solved || !classTask.solved ? 'disabled' : ''} class="mt-1 text-navy">
+                                        <span class="text-sm font-medium text-navy">B) The river looks narrow and shining under the moon, like a silver ribbon.</span>
+                                    </label>
+                                    <label class="flex items-start space-x-3 p-3 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                                        <input type="radio" name="meaning_interp" value="C" onclick="playSound('click')" ${interpTask.solved || !classTask.solved ? 'disabled' : ''} class="mt-1 text-navy">
+                                        <span class="text-sm font-medium text-navy">C) The river has stopped flowing and turned cold.</span>
+                                    </label>
+                                </div>
+                                <button onclick="submitMeaningInterp()" ${interpTask.solved || !classTask.solved ? 'disabled' : ''} class="${interpTask.solved ? 'bg-emerald-600 text-white' : (classTask.solved && !interpTask.solved ? 'bg-navy hover:bg-navy/90 text-ivory guide-glow' : 'bg-slate/30 text-slate-500')} px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm">
+                                    ${interpTask.solved ? 'Interpretation Verified ✓' : 'Confirm Interpretation'}
+                                </button>
+                                <div id="interp-feedback" class="mt-3 text-sm font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(2)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Case Map
+                        </button>
+                        <button onclick="goToScreen(9)" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Continue to Sensory Side Quest →
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (classTask.solved && classTask.points > 0) {
+                document.getElementById('class-feedback').innerHTML = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> This is figurative language (metaphor). (Earned ${classTask.points}/5 pts)</div>`;
+            } else if (classTask.solved && classTask.points === 0) {
+                document.getElementById('class-feedback').innerHTML = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200"><strong>Nice try—let’s look at the clue together.</strong> This expression is <strong>Figurative</strong>.</div>`;
+            }
+
+            if (interpTask.solved && interpTask.points > 0) {
+                document.getElementById('interp-feedback').innerHTML = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>Correct!</strong> The metaphor helps readers picture its narrow, shining appearance. (Earned ${interpTask.points}/10 pts) 🏆 <span class="font-bold text-gold">Meaning Mapper Badge Unlocked!</span></div>`;
+            } else if (interpTask.solved && interpTask.points === 0) {
+                document.getElementById('interp-feedback').innerHTML = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200"><strong>Nice try—let’s look at the clue together.</strong> The correct interpretation is <strong>Option B</strong>.</div>`;
+            }
+        }
+
+        window.setMeterValue = function(val) {
+            playSound('click');
+            state.meaningSelection = val;
+            renderScreen();
+        }
+
+        function submitMeaningClass() {
+            playSound('click');
+            const task = state.tasks.meaningMeterClass;
+            if (task.solved || !state.meaningSelection) return;
+            const isFigurative = state.meaningSelection === 'Figurative';
+
+            task.attempts++;
+            if (isFigurative) {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 5 : 3;
+                updateScoreLedger();
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    document.getElementById('class-feedback').innerHTML = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Can a river literally be a ribbon? Move the meter toward Figurative!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    renderScreen();
+                }
+            }
+        }
+
+        function submitMeaningInterp() {
+            playSound('click');
+            const task = state.tasks.meaningMeterInterp;
+            if (task.solved) return;
+            const selected = document.querySelector('input[name="meaning_interp"]:checked');
+            if (!selected) {
+                showModal("Selection Required", "Please select an interpretation option.");
+                return;
+            }
+
+            task.attempts++;
+            if (selected.value === 'B') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 10 : 5;
+                updateScoreLedger();
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    document.getElementById('interp-feedback').innerHTML = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Hint:</strong> Think about the river’s shape and how moonlight makes it shine. Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    renderScreen();
+                }
+            }
+        }
+
+        // ==========================================
+        // SCREEN 9: Sensory Side Quest — Taste and Touch (Independent Validation)
+        // ==========================================
+        function renderScreen9(container) {
+            const tasteTask = state.tasks.sensoryTaste;
+            const touchTask = state.tasks.sensoryTouch;
+            const bothCompleted = (tasteTask.status === 'completed' && touchTask.status === 'completed');
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Meaning Trail • Sensory Side Quest</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">Taste & Touch Review</span>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-navy mb-2">Sensory Side Quest</h2>
+                        <p class="text-slate text-sm mb-6">Find the two sensory clues in the passage. One relates to taste; the other relates to touch.</p>
+
+                        <!-- Passage Evidence Panel -->
+                        <div class="bg-navy text-ivory p-4 rounded-xl mb-6 shadow-inner text-sm font-serif border border-gold/40">
+                            <span class="text-xs font-sans font-bold uppercase tracking-widest text-gold block mb-1">Passage Evidence Panel</span>
+                            <p>“Cold stones pressed against her palms... She tasted a tart berry and felt the rough rope scrape her skin.”</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Taste Clue -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate/20 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 class="font-bold text-navy mb-2 flex items-center"><span class="mr-2">👅</span> Taste Clue</h3>
+                                    <p class="text-xs text-slate mb-3">Type a word or short phrase from the passage that identifies the taste sensation.</p>
+                                    <input type="text" id="taste-input" placeholder="Type your answer here." value="${tasteTask.status !== 'pending' || tasteTask.attempts > 0 ? document.getElementById('taste-input')?.value || '' : ''}" ${tasteTask.status === 'completed' ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-xl border border-slate/40 text-sm font-medium mb-3">
+                                </div>
+                                <div>
+                                    <button onclick="submitTaste()" ${tasteTask.status === 'completed' ? 'disabled' : ''} class="w-full ${tasteTask.status === 'completed' ? 'bg-emerald-600 text-white' : 'bg-navy text-ivory hover:bg-navy/90 guide-glow'} py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all">
+                                        ${tasteTask.status === 'completed' ? 'Solved ✓' : 'Verify Taste'}
+                                    </button>
+                                    <div id="taste-feedback" class="mt-3 text-xs font-medium"></div>
+                                </div>
+                            </div>
+
+                            <!-- Touch Clue -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate/20 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 class="font-bold text-navy mb-2 flex items-center"><span class="mr-2">✋</span> Touch Clue</h3>
+                                    <p class="text-xs text-slate mb-3">Type a word or short phrase from the passage that identifies a touch sensation.</p>
+                                    <input type="text" id="touch-input" placeholder="Type your answer here." value="${touchTask.status !== 'pending' || touchTask.attempts > 0 ? document.getElementById('touch-input')?.value || '' : ''}" ${touchTask.status === 'completed' ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-xl border border-slate/40 text-sm font-medium mb-3">
+                                </div>
+                                <div>
+                                    <button onclick="submitTouch()" ${touchTask.status === 'completed' ? 'disabled' : ''} class="w-full ${touchTask.status === 'completed' ? 'bg-emerald-600 text-white' : 'bg-navy text-ivory hover:bg-navy/90 guide-glow'} py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all">
+                                        ${touchTask.status === 'completed' ? 'Solved ✓' : 'Verify Touch'}
+                                    </button>
+                                    <div id="touch-feedback" class="mt-3 text-xs font-medium"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(8)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Meaning Meter
+                        </button>
+                        <button onclick="completeSensorySideQuest()" class="${bothCompleted ? 'bg-navy hover:bg-navy/90 text-ivory guide-glow cursor-pointer' : 'bg-slate/30 text-slate-500 cursor-not-allowed'} px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
+                            Complete Meaning Trail →
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Render Taste Feedback State independently
+            const tasteFb = document.getElementById('taste-feedback');
+            if (tasteTask.feedback) {
+                tasteFb.innerHTML = tasteTask.feedback;
+            }
+
+            // Render Touch Feedback State independently
+            const touchFb = document.getElementById('touch-feedback');
+            if (touchTask.feedback) {
+                touchFb.innerHTML = touchTask.feedback;
+            }
+        }
+
+        function submitTaste() {
+            playSound('click');
+            const task = state.tasks.sensoryTaste;
+            if (task.status === 'completed') return;
+            const inputEl = document.getElementById('taste-input');
+            const val = inputEl ? inputEl.value.trim().toLowerCase() : '';
+            
+            // Normalize punctuation and extra spaces, then check for an exact match against allowed phrases
+            const clean = val.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ").trim();
+            const accepted = ["tart berry", "tasted a tart berry"];
+            const isCorrect = accepted.includes(clean);
+
+            task.attempts++;
+            if (isCorrect) {
+                playSound('correct');
+                task.status = 'completed';
+                task.points = 5;
+                task.solved = true;
+                task.feedback = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>That matches the sensory clue.</strong> This is taste imagery because it describes a taste sensation. (Earned 5 pts) 🏆 <span class="font-bold text-gold">Sensory Scout Badge Unlocked!</span></div>`;
+                updateScoreLedger();
+                if (inputEl) inputEl.disabled = true;
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    task.feedback = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Nice try—look for the words that describe what Mara tasted.</strong> Try again!</div>`;
+                    renderScreen();
+                } else {
+                    task.status = 'completed';
+                    task.points = 0;
+                    task.solved = true;
+                    task.feedback = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the passage together.</strong> The correct answer is <strong>‘tart berry’</strong> (or <strong>‘tasted a tart berry’</strong>). This is taste imagery because it describes what Mara tastes.</div>`;
+                    updateScoreLedger();
+                    if (inputEl) inputEl.disabled = true;
+                    renderScreen();
+                }
+            }
+        }
+
+        function submitTouch() {
+            playSound('click');
+            const task = state.tasks.sensoryTouch;
+            if (task.status === 'completed') return;
+            const inputEl = document.getElementById('touch-input');
+            const val = inputEl ? inputEl.value.trim().toLowerCase() : '';
+            
+            // Normalize punctuation and extra spaces, then check for an exact match against allowed phrases
+            const clean = val.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ").trim();
+            const accepted = [
+                "cold stones pressed against her palms", 
+                "rough rope scrape her skin", 
+                "felt the rough rope scrape her skin"
+            ];
+            const isCorrect = accepted.includes(clean);
+
+            task.attempts++;
+            if (isCorrect) {
+                playSound('correct');
+                task.status = 'completed';
+                task.points = 5;
+                task.solved = true;
+                task.feedback = `<div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200"><strong>That matches the sensory clue.</strong> This is touch imagery because it describes physical contact or texture. (Earned 5 pts) 🏆 <span class="font-bold text-gold">Sensory Scout Badge Unlocked!</span></div>`;
+                updateScoreLedger();
+                if (inputEl) inputEl.disabled = true;
+                renderScreen();
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    task.feedback = `<div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200"><strong>Nice try—look for words that describe temperature, texture, or physical contact.</strong> Try again!</div>`;
+                    renderScreen();
+                } else {
+                    task.status = 'completed';
+                    task.points = 0;
+                    task.solved = true;
+                    task.feedback = `<div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200"><strong>Nice try—let’s look at the passage together.</strong> The correct answer is <strong>‘cold stones pressed against her palms’</strong> or <strong>‘rough rope scrape her skin.’</strong> These phrases are touch imagery because they describe temperature, texture, or physical contact.</div>`;
+                    updateScoreLedger();
+                    if (inputEl) inputEl.disabled = true;
+                    renderScreen();
+                }
+            }
+        }
+
+        function completeSensorySideQuest() {
+            const tasteTask = state.tasks.sensoryTaste;
+            const touchTask = state.tasks.sensoryTouch;
+            if (tasteTask.status !== 'completed' || touchTask.status !== 'completed') {
+                playSound('wrong');
+                showModal("Complete Both Fields", "Please verify both the Taste Clue and Touch Clue before proceeding.");
+                return;
+            }
+            state.meaningTrailCompleted = true;
+            goToScreen(2);
+        }
+
+        // ==========================================
+        // SCREEN 10: Final Verdict — Part 1 (Checks 1, 2, 3)
+        // ==========================================
+        function renderScreen10(container) {
+            const sub = state.verdictCurrentSubScreen;
+
+            if (sub === 1) {
+                container.innerHTML = getVerdictCardHtml(1, "Which figure of speech is used in “I have a thousand fears”?", [
+                    {val: "Hyperbole", text: "A. Hyperbole"},
+                    {val: "Metaphor", text: "B. Metaphor"},
+                    {val: "Personification", text: "C. Personification"},
+                    {val: "Simile", text: "D. Simile"}
+                ], state.tasks.verdict1, "submitVerdict1");
+            } else if (sub === 2) {
+                container.innerHTML = getVerdictCardHtml(2, "Which exact words provide the clearest evidence for the hyperbole?", [
+                    {val: "I have", text: "A. “I have”"},
+                    {val: "a thousand fears", text: "B. “a thousand fears”"},
+                    {val: "Mara said", text: "C. “Mara said”"},
+                    {val: "but I will not turn back", text: "D. “but I will not turn back”"}
+                ], state.tasks.verdict2, "submitVerdict2");
+            } else if (sub === 3) {
+                container.innerHTML = getVerdictCardHtml(3, "What does “I have a thousand fears” mean in this passage?", [
+                    {val: "A", text: "A. Mara is extremely afraid."},
+                    {val: "B", text: "B. Mara is worried about many separate dangers, each counted individually."},
+                    {val: "C", text: "C. Mara feels uncertain but is not frightened."},
+                    {val: "D", text: "D. Mara has already overcome all fear and feels completely confident."}
+                ], state.tasks.verdict3, "submitVerdict3");
+            }
+        }
+
+        function getVerdictCardHtml(checkNum, promptText, options, taskObj, submitFuncName, isInsight = false) {
+            let optionsHtml = options.map(opt => `
+                <label class="flex items-center space-x-3 p-3.5 bg-white rounded-xl border border-slate/20 cursor-pointer hover:border-navy">
+                    <input type="radio" name="verdict_opt" value="${opt.val}" ${taskObj.solved ? 'disabled' : ''} class="text-navy">
+                    <span class="font-medium text-navy text-sm sm:text-base">${opt.text}</span>
+                </label>
+            `).join('');
+            
+            const checkHeader = isInsight ? "Final Verdict • Character Insight" : `Final Verdict • Check ${checkNum} of 5`;
+            const checkTag = isInsight ? "Character Values" : (checkNum <= 3 ? "Hyperbole Analysis" : "Personification Analysis");
+
+            return `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b border-slate/20 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">${checkHeader}</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-gold/20 text-navy rounded-full">${checkTag}</span>
+                        </div>
+
+                        <h2 class="text-xl sm:text-2xl font-bold text-navy mb-2">Final Clue Evaluation</h2>
+                        <p class="text-slate text-sm mb-6">“I have a thousand fears,” Mara said, “but I will not turn back.”</p>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate/20 mb-6">
+                            <h3 class="font-bold text-navy mb-4 text-base sm:text-lg">${promptText}</h3>
+                            <div class="space-y-3 mb-6">
+                                ${optionsHtml}
+                            </div>
+                            <button onclick="${submitFuncName}()" ${taskObj.solved ? 'disabled' : ''} class="${taskObj.solved ? 'bg-emerald-600 text-white' : 'bg-navy hover:bg-navy/90 text-ivory guide-glow'} px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md">
+                                ${taskObj.solved ? 'Verified ✓' : 'Verify Answer'}
+                            </button>
+                            <div id="v-feedback" class="mt-4 text-sm font-medium"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="prevVerdictSubScreen(${checkNum})" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            ← Previous Check
+                        </button>
+                        <button onclick="nextVerdictSubScreen(${checkNum})" class="bg-navy hover:bg-navy/90 text-ivory guide-glow px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
+                            Next Check →
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.prevVerdictSubScreen = function(currentNum) {
+            playSound('nav');
+            if (currentNum > 1 && currentNum <= 3) {
+                state.verdictCurrentSubScreen = currentNum - 1;
+                renderScreen();
+            } else if (currentNum === 1) {
+                goToScreen(9);
+            } else if (currentNum === 4) {
+                state.verdictCurrentSubScreen = 3;
+                goToScreen(10);
+            } else if (currentNum === 5) {
+                state.verdictCurrentSubScreen = 4;
+                renderScreen();
+            } else if (currentNum === 6) {
+                state.verdictCurrentSubScreen = 5;
+                renderScreen();
+            }
+        };
+
+        window.nextVerdictSubScreen = function(currentNum) {
+            playSound('nav');
+            const taskObj = state.tasks[`verdict${currentNum}`];
+            if (!taskObj.solved) {
+                playSound('wrong');
+                showModal("Verification Required", "Please verify your answer for this check before proceeding to the next check.");
+                return;
+            }
+            if (currentNum < 3) {
+                state.verdictCurrentSubScreen = currentNum + 1;
+                renderScreen();
+            } else if (currentNum === 3) {
+                state.verdictCurrentSubScreen = 4;
+                goToScreen(11);
+            } else if (currentNum === 4) {
+                state.verdictCurrentSubScreen = 5;
+                renderScreen();
+            } else if (currentNum === 5) {
+                state.verdictCurrentSubScreen = 6;
+                renderScreen();
+            } else if (currentNum === 6) {
+                goToScreen(12);
+            }
+        };
+
+        function submitVerdict1() {
+            playSound('click');
+            const task = state.tasks.verdict1;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'Hyperbole') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 8 : 4;
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. “A thousand fears” is an exaggeration that shows Mara is very afraid. (Earned ${task.points} pts)</div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Think about whether Mara literally counted one thousand separate fears or is exaggerating how she feels. Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s look at the words together. The correct answer is <strong>A. Hyperbole</strong>. “A thousand fears” exaggerates how afraid Mara feels.</div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        function submitVerdict2() {
+            playSound('click');
+            const task = state.tasks.verdict2;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'a thousand fears') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 8 : 4;
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. “A thousand fears” is the phrase that provides evidence of hyperbole. (Earned ${task.points} pts)</div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Look for the words that express an unusually large number of fears. Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s find the strongest evidence. The correct answer is <strong>B. “a thousand fears”</strong>. These words contain the exaggeration.</div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        function submitVerdict3() {
+            playSound('click');
+            const task = state.tasks.verdict3;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'A') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 8 : 4;
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. The phrase emphasizes Mara’s fear, even though she decides to continue. (Earned ${task.points} pts)</div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Read the whole sentence. Mara admits that she has fears but says she will not turn back. Is the number meant literally? Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s connect the words to the situation. The correct answer is <strong>A: Mara is extremely afraid.</strong> The number is figurative, not an exact count.</div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        // ==========================================
+        // SCREEN 11: Final Verdict — Part 2 (Checks 4, 5, 6)
+        // ==========================================
+        function renderScreen11(container) {
+            const sub = state.verdictCurrentSubScreen;
+
+            if (sub === 4) {
+                container.innerHTML = getVerdictCardHtml(4, "Which pair of verbs gives human-like actions to nonhuman things in the final sentence?", [
+                    {val: "A", text: "A. “woke” and “sighed”"},
+                    {val: "B", text: "B. “hurried” and “called”"},
+                    {val: "C", text: "C. “tasted” and “felt”"},
+                    {val: "D", text: "D. “pressed” and “scraped”"}
+                ], state.tasks.verdict4, "submitVerdict4");
+            } else if (sub === 5) {
+                container.innerHTML = getVerdictCardHtml(5, "What does the description suggest?", [
+                    {val: "A", text: "A. The lantern has literally awakened from sleep, and the village is physically sighing."},
+                    {val: "B", text: "B. The lantern’s light returns, and the villagers feel relieved."},
+                    {val: "C", text: "C. The lantern remains dark, leaving the villagers uncertain."},
+                    {val: "D", text: "D. The villagers are angry because the lantern has been taken away."}
+                ], state.tasks.verdict5, "submitVerdict5");
+            } else if (sub === 6) {
+                container.innerHTML = getVerdictCardHtml(6, "Mara admits that she is afraid, yet she chooses not to turn back. What does her decision suggest about her values?", [
+                    {val: "A", text: "A. She values courage and perseverance, even when she feels afraid."},
+                    {val: "B", text: "B. She values avoiding every risk more than completing the journey."},
+                    {val: "C", text: "C. She believes fear should be hidden rather than acknowledged."},
+                    {val: "D", text: "D. She continues only because she expects others to praise her."}
+                ], state.tasks.verdict6, "submitVerdict6", true);
+            }
+        }
+
+        function submitVerdict4() {
+            playSound('click');
+            const task = state.tasks.verdict4;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'A') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 8 : 4;
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. “Woke” and “sighed” are human-like actions used to describe the lantern and village. (Earned ${task.points} pts)</div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Which verbs describe the lantern or village doing something a person might do? Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s look at the description together. The correct answer is <strong>A. “woke” and “sighed.”</strong> These verbs give human-like actions to the lantern and village.</div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        function submitVerdict5() {
+            playSound('click');
+            const task = state.tasks.verdict5;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'B') {
+                playSound('correct');
+                task.solved = true;
+                task.points = (task.attempts === 1) ? 8 : 4;
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. The lantern’s light returns, and the people feel relieved. (Earned ${task.points} pts) 🏆 <span class="font-bold text-gold">Evidence Reporter Badge Unlocked!</span></div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Think about what happens when the lantern’s light returns and how people might feel afterward. Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s connect the description to what is happening. The correct answer is <strong>B. The lantern’s light returns, and the villagers feel relieved.</strong> The personification communicates the return of light and the villagers’ relief.</div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        function submitVerdict6() {
+            playSound('click');
+            const task = state.tasks.verdict6;
+            if (task.solved) return;
+            const sel = document.querySelector('input[name="verdict_opt"]:checked');
+            if (!sel) { showModal("Selection Required", "Please select an option."); return; }
+
+            task.attempts++;
+            const fb = document.getElementById('v-feedback');
+            if (sel.value === 'A') {
+                playSound('correct');
+                task.solved = true;
+                task.points = 0; // Unscored item
+                updateScoreLedger();
+                fb.innerHTML = `<div class="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">That’s right. Mara’s decision suggests courage and perseverance. She acknowledges her fear but chooses to continue. (Required response logged)</div>`;
+                document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+            } else {
+                playSound('wrong');
+                if (task.attempts < task.maxAttempts) {
+                    fb.innerHTML = `<div class="p-4 bg-amber-50 text-amber-900 rounded-xl border border-amber-200">Look at the contrast between what Mara admits she feels and what she chooses to do. Try again!</div>`;
+                } else {
+                    task.solved = true;
+                    task.points = 0;
+                    updateScoreLedger();
+                    fb.innerHTML = `<div class="p-4 bg-rose-50 text-rose-900 rounded-xl border border-emerald-200">Nice try—let’s consider Mara’s choice. The best answer is <strong>A: she shows courage and perseverance by continuing even though she feels afraid.</strong></div>`;
+                    document.querySelectorAll('input[name="verdict_opt"]').forEach(el => el.disabled = true);
+                }
+            }
+        }
+
+        // ==========================================
+        // SCREEN 12: Case Closed — Badge Cabinet
+        // ==========================================
+        function renderScreen12(container) {
+            const finalScore = state.score;
+            const isMaster = finalScore >= 80;
+
+            container.innerHTML = `
+                <div class="flex-1 p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-6 border-b border-slate/20 pb-4">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate">Case Closed • Mission 3 Complete</span>
+                            <span class="text-xs font-semibold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full">All Evidence Filed</span>
+                        </div>
+
+                        <div class="text-center mb-8 bg-gradient-to-r from-navy to-darkCard text-ivory p-8 rounded-3xl shadow-xl">
+                            <div class="text-5xl mb-3">🏅</div>
+                            <h2 class="text-3xl font-extrabold text-gold mb-2">CASE CLOSED: THE EVIDENCE HAS BEEN FILED</h2>
+                            <p class="text-slate-300 text-sm max-w-md mx-auto mb-6">You have successfully investigated the literary case of The Lantern at Bell Bridge.</p>
+                            
+                            <div class="inline-flex items-center bg-ivory text-navy px-6 py-3 rounded-2xl shadow-inner font-bold text-2xl">
+                                <span>Final Score:</span>
+                                <span class="text-gold ml-2">${finalScore}</span>
+                                <span class="text-slate text-base ml-1">/ 100</span>
+                            </div>
+                        </div>
+
+                        <!-- Badge Cabinet -->
+                        <h3 class="text-xl font-bold text-navy mb-4">Your Badge Cabinet</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                            <!-- Sound Listener -->
+                            <div class="p-4 rounded-2xl border ${state.tasks.audioForensics.solved && state.tasks.audioForensics.points > 0 ? 'bg-gold/10 border-gold shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">🎵</span>
+                                <h4 class="font-bold text-navy text-sm">Sound Listener</h4>
+                                <p class="text-xs text-slate mt-1">${state.tasks.audioForensics.solved && state.tasks.audioForensics.points > 0 ? 'Earned for rhyme evidence.' : 'Locked'}</p>
+                            </div>
+
+                            <!-- Pattern Tracker -->
+                            <div class="p-4 rounded-2xl border ${state.tasks.patternLog.solved || state.tasks.signalPathStep2.solved ? 'bg-gold/10 border-gold shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">🔁</span>
+                                <h4 class="font-bold text-navy text-sm">Pattern Tracker</h4>
+                                <p class="text-xs text-slate mt-1">${state.tasks.patternLog.solved || state.tasks.signalPathStep2.solved ? 'Earned for repetition & anaphora.' : 'Locked'}</p>
+                            </div>
+
+                            <!-- Meaning Mapper -->
+                            <div class="p-4 rounded-2xl border ${state.tasks.meaningMeterInterp.solved && state.tasks.meaningMeterInterp.points > 0 ? 'bg-gold/10 border-gold shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">🗺️</span>
+                                <h4 class="font-bold text-navy text-sm">Meaning Mapper</h4>
+                                <p class="text-xs text-slate mt-1">${state.tasks.meaningMeterInterp.solved && state.tasks.meaningMeterInterp.points > 0 ? 'Earned for meaning analysis.' : 'Locked'}</p>
+                            </div>
+
+                            <!-- Sensory Scout -->
+                            <div class="p-4 rounded-2xl border ${state.tasks.sensoryTaste.solved || state.tasks.sensoryTouch.solved ? 'bg-gold/10 border-gold shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">🍓</span>
+                                <h4 class="font-bold text-navy text-sm">Sensory Scout</h4>
+                                <p class="text-xs text-slate mt-1">${state.tasks.sensoryTaste.solved || state.tasks.sensoryTouch.solved ? 'Earned for sensory side quest.' : 'Locked'}</p>
+                            </div>
+
+                            <!-- Evidence Reporter -->
+                            <div class="p-4 rounded-2xl border ${state.tasks.verdict5.solved ? 'bg-gold/10 border-gold shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">📝</span>
+                                <h4 class="font-bold text-navy text-sm">Evidence Reporter</h4>
+                                <p class="text-xs text-slate mt-1">${state.tasks.verdict5.solved ? 'Earned for final verdict.' : 'Locked'}</p>
+                            </div>
+
+                            <!-- Master Literary Detective -->
+                            <div class="p-4 rounded-2xl border ${isMaster ? 'bg-emerald-100 border-emerald-500 shadow-sm' : 'bg-slate/10 border-slate/20 opacity-60'} flex flex-col items-center text-center">
+                                <span class="text-3xl mb-2">⭐</span>
+                                <h4 class="font-bold text-navy text-sm">Master Detective</h4>
+                                <p class="text-xs text-slate mt-1">${isMaster ? 'Awarded for 80+ score!' : 'Requires 80+ score'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate/20">
+                        <button onclick="goToScreen(2)" class="px-4 py-2 border border-slate/40 rounded-xl text-slate hover:bg-slate/10 font-medium text-sm">
+                            Review Case Map
+                        </button>
+                        <button onclick="restartMission()" class="bg-navy hover:bg-navy/90 text-ivory px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all guide-glow">
+                            Replay Mission ↺
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function restartMission() {
+            playSound('nav');
+            for (let k in state.tasks) {
+                state.tasks[k].attempts = 0;
+                state.tasks[k].points = 0;
+                state.tasks[k].solved = false;
+                if (k === 'sensoryTaste' || k === 'sensoryTouch') {
+                    state.tasks[k].status = 'pending';
+                    state.tasks[k].feedback = '';
+                }
+            }
+            state.soundTrailCompleted = false;
+            state.meaningTrailCompleted = false;
+            state.verdictCurrentSubScreen = 1;
+            state.screen2Stage = 1;
+            goToScreen(1);
+        }
+
+        // --- Custom Modal Helper ---
+        function showModal(title, message) {
+            const existingModal = document.getElementById('custom-modal');
+            if (existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'custom-modal';
+            modal.className = 'fixed inset-0 bg-navy/60 backdrop-blur-sm flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate/20 text-navy animate-in fade-in zoom-in duration-200">
+                    <h3 class="text-lg font-bold mb-2 flex items-center">
+                        <span class="mr-2 text-gold">⚠️</span> ${title}
+                    </h3>
+                    <p class="text-slate text-sm mb-6">${message}</p>
+                    <div class="flex justify-end">
+                        <button onclick="playSound('click'); document.getElementById('custom-modal').remove()" class="bg-navy hover:bg-navy/90 text-ivory px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all guide-glow">
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // --- Initial Load ---
+        window.onload = function() {
+            // Note: Tone.js requires a user gesture to start AudioContext.
+            // We initialize it smoothly when they first click "OPEN CASE FILE".
+            updateScoreLedger();
+            renderScreen();
+        };
+    </script>
+</body>
+</html>

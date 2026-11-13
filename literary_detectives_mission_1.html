@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Literary Detectives: Mission 1 - Hear the Clues</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Cinzel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { DEFAULT: '#172A3A', dark: '#0f1c27', light: '#243e54' },
+                        ivory: { DEFAULT: '#F7F4ED', dark: '#eae4d5' },
+                        gold: { DEFAULT: '#C6A15B', light: '#d6b879', dark: '#a8843e' },
+                        slate: { DEFAULT: '#52616B', light: '#6c7d8a', dark: '#39434a' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles & Animation */
+        body { background-color: #172A3A; color: #172A3A; font-family: 'Inter', sans-serif; user-select: none; }
+        .text-serif { font-family: 'Cinzel', serif; }
+        .glass-panel { background: rgba(247, 244, 237, 0.96); backdrop-filter: blur(10px); }
+        .btn-glow { box-shadow: 0 0 15px rgba(198, 161, 91, 0.8), 0 0 25px rgba(198, 161, 91, 0.4); animation: subtlePulse 2s infinite ease-in-out; }
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(198, 161, 91, 0.7); }
+            50% { transform: scale(1.03); box-shadow: 0 0 22px rgba(198, 161, 91, 0.95); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feedback-panel { animation: slideDown 0.3s ease-out forwards; }
+        
+        /* Netlify/Hosting Safe Area Padding */
+        .safe-area-bottom { padding-bottom: 80px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center p-2 sm:p-4 bg-navy text-navy">
+
+    <!-- Top Header Bar -->
+    <header class="w-full max-w-4xl bg-navy-light rounded-xl p-3 sm:p-4 mb-2 text-ivory flex flex-wrap justify-between items-center shadow-lg border border-gold/20">
+        <div class="flex items-center space-x-3 mb-2 sm:mb-0">
+            <div class="w-10 h-10 rounded-lg bg-gold flex items-center justify-center text-navy font-bold text-xl">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <div>
+                <h1 class="font-serif font-bold text-base sm:text-lg text-gold leading-tight">LITERARY DETECTIVES</h1>
+                <p class="text-xs text-ivory/80">Mission 1: Hear the Clues</p>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-audio-toggle" onclick="toggleAudio()" class="bg-navy px-3 py-1.5 rounded-lg border border-gold/40 text-gold text-xs flex items-center space-x-1 hover:bg-navy-dark transition focus:outline-none focus:ring-2 focus:ring-gold">
+                <i id="audio-icon" class="fa-solid fa-volume-xmark"></i>
+                <span id="audio-label">Audio: OFF</span>
+            </button>
+            <div class="bg-navy px-3 py-1.5 rounded-lg border border-gold/30 flex items-center space-x-1">
+                <i class="fa-solid fa-trophy text-gold text-xs"></i>
+                <span class="text-xs text-ivory/70 hidden sm:inline">Score:</span>
+                <span id="global-score" class="font-bold text-gold text-sm">0 / 150</span>
+            </div>
+            <div class="bg-navy px-3 py-1.5 rounded-lg border border-ivory/20 flex items-center space-x-1">
+                <i class="fa-solid fa-compass text-ivory/60 text-xs"></i>
+                <span id="screen-indicator" class="font-semibold text-xs sm:text-sm text-ivory">1 / 13</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Application Container -->
+    <main id="app-container" class="w-full max-w-4xl flex-grow flex flex-col justify-center items-center relative safe-area-bottom">
+        <!-- Dynamic Content -->
+    </main>
+
+    <!-- Bottom Progress & Navigation Toolbar -->
+    <div class="w-full max-w-4xl fixed sm:static bottom-0 left-0 right-0 p-2 sm:p-0 z-50 bg-navy sm:bg-transparent">
+        <div class="w-full bg-navy-light rounded-xl p-3 flex flex-col sm:flex-row justify-between items-center shadow-[0_-5px_15px_rgba(0,0,0,0.3)] sm:shadow-lg border border-gold/20 mb-1 sm:mb-0 sm:mt-2">
+            
+            <div class="w-full sm:w-1/3 mb-2 sm:mb-0 flex flex-col items-center sm:items-start">
+                <div class="flex justify-between w-full text-2xs text-ivory/80 mb-1 font-semibold">
+                    <span>Task Progress</span>
+                    <span id="progress-text">Activities completed: 0 of 17</span>
+                </div>
+                <div class="w-full bg-navy-dark rounded-full h-2 border border-slate/50">
+                    <div id="progress-bar-fill" class="bg-gold h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between w-full sm:w-auto space-x-2">
+                <button id="btn-back" onclick="navigateBack()" class="px-4 py-2 bg-slate text-ivory text-xs sm:text-sm font-semibold rounded-lg hover:bg-slate-light transition flex items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-arrow-left"></i><span>Back</span>
+                </button>
+                <button id="btn-next" onclick="navigateNext()" class="px-4 py-2 bg-gold text-navy font-bold text-xs sm:text-sm rounded-lg hover:bg-gold-light transition flex items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span id="btn-next-text">Next</span><i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="custom-alert" class="fixed inset-0 bg-navy/80 z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center border-2 border-gold">
+            <i class="fa-solid fa-circle-exclamation text-4xl text-gold mb-3"></i>
+            <h3 class="font-serif font-bold text-navy text-lg mb-2">Attention</h3>
+            <p id="custom-alert-msg" class="text-sm text-slate mb-5">Message goes here.</p>
+            <button onclick="closeCustomAlert()" class="px-6 py-2 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition">OK</button>
+        </div>
+    </div>
+
+    <!-- Application Engine JavaScript -->
+    <script>
+        /**
+         * GLOBAL APP STATE & SCORES
+         */
+        const state = {
+            currentScreen: 1,
+            score: 0,
+            firstAttemptCorrect: 0,
+            completedActivities: new Set(), // Max 17
+            badges: { rhyme: false, repetition: false, alliteration: false, anaphora: false, sleuth: false, master: false },
+            audioEnabled: false,
+            audioCtx: null,
+            revealStage: { 4: 1, 5: 1, 6: 1, 7: 1 },
+            items: {}, // generic store for item attempts
+            screen9Index: 0,
+            screen11Index: 0,
+            screen11Answers: {},
+            creativeChallengeState: { p: "", l1: "", l2: "", checked: false, msg: "" }
+        };
+
+        const NUM_REQUIRED_ACTIVITIES = 17;
+
+        let alertCallback = null;
+        function showCustomAlert(msg, callback) {
+            document.getElementById('custom-alert-msg').innerText = msg;
+            document.getElementById('custom-alert').classList.remove('hidden');
+            alertCallback = callback || null;
+        }
+        function closeCustomAlert() {
+            document.getElementById('custom-alert').classList.add('hidden');
+            if (alertCallback) { alertCallback(); alertCallback = null; }
+        }
+
+        // Data for 6-Question Challenge (Screen 9)
+        const mixedQuestions = [
+            {
+                id: 'm0', text: "“The gate swung wide; the children cried.” Which sound device is most clearly shown?",
+                choices: ["A. Rhyme", "B. Repetition", "C. Alliteration", "D. Anaphora"], correct: 0,
+                evidence: "wide / cried", feedbackCorrect: "Wide and cried share the same ending sound.", hint: "Compare the ending sounds of the two key words."
+            },
+            {
+                id: 'm1', text: "“The echo answered and answered from the tunnel.” Which sound device is most clearly shown?",
+                choices: ["A. Rhyme", "B. Repetition", "C. Alliteration", "D. Anaphora"], correct: 1,
+                evidence: "answered / answered", feedbackCorrect: "The word answered is used again to emphasize the echo’s response.", hint: "Find the word used more than once."
+            },
+            {
+                id: 'm2', text: "“Dina draws delicate designs.” Which sound device is most clearly shown?",
+                choices: ["A. Rhyme", "B. Repetition", "C. Alliteration", "D. Anaphora"], correct: 2,
+                evidence: "Dina / draws / delicate / designs", feedbackCorrect: "These words repeat the initial /d/ sound.", hint: "Listen to the initial consonant sound of nearby words."
+            },
+            {
+                id: 'm3', text: "“We can ask. We can listen. We can decide.” Which is the most specific sound device?",
+                choices: ["A. Rhyme", "B. Repetition only", "C. Alliteration", "D. Anaphora"], correct: 3,
+                evidence: "We can", feedbackCorrect: "We can appears at the beginning of successive sentences. Anaphora is a specific form of repetition.", hint: "Look at the first words of all three sentences."
+            },
+            {
+                id: 'm4', text: "“The child wore a bright red coat and sailed away in a boat.” Which pair provides the rhyme clue?",
+                choices: ["A. child / bright", "B. coat / boat", "C. red / sailed", "D. away / child"], correct: 1,
+                evidence: "coat / boat", feedbackCorrect: "Coat and boat share the same ending sound, so they rhyme.", hint: "Say each pair aloud and listen for matching ending sounds."
+            },
+            {
+                id: 'm5', text: "“The door opened and opened until it stopped.” Which device is most clearly shown?",
+                choices: ["A. Rhyme", "B. Repetition", "C. Alliteration", "D. Anaphora"], correct: 1,
+                evidence: "opened / opened", feedbackCorrect: "The word opened is repeated to emphasize that the action happened again.", hint: "Look for a word that appears more than once. The line contains no intended rhyme or alliteration clue."
+            }
+        ];
+
+        // Final Case Tasks (Screen 11)
+        const finalTasks = [
+            {
+                id: 'p0', type: 'highlight', title: "1. Rhyme", instruction: "Keep lines 1 and 2 visible. Highlight the two words with matching ending sounds.",
+                lines: ["Soft rain swept the silent street,", "Lanterns shimmered by my feet."],
+                options: ["Soft", "street", "feet", "rain", "Lanterns"], target: ["street", "feet"],
+                feedbackCorrect: "The correct pair is street / feet. These words rhyme because their ending sounds match.",
+                feedbackNeutralFail: "The correct answer is street / feet. These words rhyme because their ending sounds match.",
+                hint: "Compare the final spoken sounds of the two words."
+            },
+            {
+                id: 'p1', type: 'drag_or_tap', title: "2. Repetition", instruction: "Select the phrase repeated in line 3 for emphasis.",
+                lines: ["“Come along, come along,” I called,"],
+                options: ["Come along, come along", "gray clouds", "over the field"], target: "Come along, come along",
+                feedbackCorrect: "Correct. The repeated phrase emphasizes the speaker's call.",
+                feedbackNeutralFail: "The correct answer is 'Come along, come along'.",
+                hint: "Look for a phrase that appears twice in a row."
+            },
+            {
+                id: 'p2', type: 'highlight_line', title: "3. Alliteration", instruction: "Select the line that uses alliteration (repetition of initial sounds in nearby words).",
+                lines: ["Soft rain swept the silent street,", "Lanterns shimmered by my feet.", "While gray clouds gathered over the field."],
+                options: ["Soft rain swept the silent street,", "Lanterns shimmered by my feet.", "While gray clouds gathered over the field."], target: "Soft rain swept the silent street,",
+                feedbackCorrect: "Correct. Several nearby words begin with the same /s/ sound.",
+                feedbackNeutralFail: "The correct answer is 'Soft rain swept the silent street,'. It repeats the initial /s/ sound.",
+                hint: "Listen to the first sound of the nearby words."
+            },
+            {
+                id: 'p3', type: 'highlight_phrase', title: "4. Anaphora", instruction: "Select the phrase repeated at the beginning of successive clauses (lines 5 and 6).",
+                lines: ["When the bell rang, doors opened slowly.", "When the bell rang, friends came closer."],
+                options: ["When the bell rang", "doors opened slowly", "friends came closer"], target: "When the bell rang",
+                feedbackCorrect: "Correct. The repeated phrase appears at the beginning of successive clauses.",
+                feedbackNeutralFail: "The correct answer is 'When the bell rang'.",
+                hint: "Find the phrase that starts each of these sentences."
+            },
+            {
+                id: 'p4', type: 'select_effect', title: "5. Effect", instruction: "Choose the most likely effect of repeating “When the bell rang.”",
+                lines: ["When the bell rang, doors opened slowly.", "When the bell rang, friends came closer."],
+                options: [
+                    "A. It links the bell to later events and creates a sense of shared response.",
+                    "B. It links the rain to its setting and creates a feeling of peaceful calm.",
+                    "C. It links the lantern to the night and creates a feeling of courage.",
+                    "D. It links the clouds to the sky and creates a feeling of coming danger."
+                ], target: 0,
+                feedbackCorrect: "The repeated opening connects the events to the bell and emphasizes how the signal brings people together.",
+                feedbackNeutralFail: "The correct answer is A. The repeated opening connects the events to the bell.",
+                hint: "Think about what happens after the bell rings in each line."
+            }
+        ];
+
+        // Audio Management
+        function toggleAudio() {
+            state.audioEnabled = !state.audioEnabled;
+            const icon = document.getElementById('audio-icon');
+            const label = document.getElementById('audio-label');
+            if (state.audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high'; label.innerText = 'Audio: ON';
+                if(!window.speechSynthesis) showCustomAlert("Read-aloud voice is unavailable on this device. You can continue reading the text.");
+                try { state.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark'; label.innerText = 'Audio: OFF';
+                if(window.speechSynthesis) window.speechSynthesis.cancel();
+            }
+        }
+        function playCorrectSound() {
+            if (!state.audioEnabled || !state.audioCtx) return;
+            const osc = state.audioCtx.createOscillator();
+            const gainNode = state.audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, state.audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(880, state.audioCtx.currentTime + 0.1); // A5
+            gainNode.gain.setValueAtTime(0.1, state.audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, state.audioCtx.currentTime + 0.3);
+            osc.connect(gainNode); gainNode.connect(state.audioCtx.destination);
+            osc.start(); osc.stop(state.audioCtx.currentTime + 0.3);
+        }
+        function speakText(text) {
+            if (!state.audioEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance(text.replace(/<[^>]*>?/gm, ''));
+            ut.rate = 0.95; window.speechSynthesis.speak(ut);
+        }
+        function playText(id) {
+            const el = document.getElementById(id);
+            if(el) speakText(el.innerText);
+        }
+
+        // Core Engine
+        window.onload = () => renderScreen();
+
+        function updateProgress() {
+            const count = state.completedActivities.size;
+            document.getElementById('progress-text').innerText = `Activities completed: ${count} of ${NUM_REQUIRED_ACTIVITIES}`;
+            document.getElementById('progress-bar-fill').style.width = `${(count / NUM_REQUIRED_ACTIVITIES) * 100}%`;
+            document.getElementById('global-score').innerText = `${state.score} / 150`;
+        }
+
+        function markActivityComplete(id) {
+            state.completedActivities.add(id);
+            updateProgress();
+        }
+
+        function renderScreen() {
+            if(window.speechSynthesis) window.speechSynthesis.cancel();
+            const container = document.getElementById('app-container');
+            document.getElementById('screen-indicator').innerText = `${state.currentScreen} / 13`;
+            updateProgress();
+
+            const btnBack = document.getElementById('btn-back');
+            const btnNext = document.getElementById('btn-next');
+            const btnNextText = document.getElementById('btn-next-text');
+            
+            btnBack.disabled = state.currentScreen === 1;
+            btnNext.classList.remove('btn-glow');
+            
+            let html = '';
+            
+            switch(state.currentScreen) {
+                case 1:
+                    html = renderScreen1();
+                    btnNext.style.display = 'none';
+                    break;
+                case 2:
+                    html = renderScreen2();
+                    btnNext.style.display = 'inline-flex'; btnNextText.innerText = "I'm Ready";
+                    btnNext.classList.add('btn-glow');
+                    break;
+                case 3:
+                    html = renderScreen3();
+                    btnNext.style.display = 'inline-flex'; btnNextText.innerText = "Next";
+                    if (state.items['w1']?.status) btnNext.classList.add('btn-glow');
+                    break;
+                case 4:
+                    html = renderClueScreen(4, 'c4', "Rhyme", "Rhyme Ranger", 
+                        "Rhyme occurs when words share matching or similar ending sounds. It can appear at the ends of lines (end rhyme) or within a line (internal rhyme). In this mission, focus mainly on end rhyme.", 
+                        "Stars shine in the night,<br>Everything glows so bright.", "night / bright", 
+                        "Which pair of words rhymes?", 
+                        ["A. sun — moon", "B. light — bright", "C. rain — cloud", "D. tree — leaf"], 1, 
+                        "Case clue found. Light and bright share the same ending sound. Matching sound, rather than spelling alone, identifies the rhyme.", 
+                        "The correct answer is Option B. Light and bright share matching ending sounds.", 
+                        "Compare the sounds at the ends of the two words.");
+                    break;
+                case 5:
+                    html = renderClueScreen(5, 'c5', "Repetition", "Repetition Tracker", 
+                        "Repetition is the deliberate reuse of a word, phrase, line, or pattern. Writers may use it to emphasize an idea, strengthen rhythm, or make an expression more memorable.", 
+                        "“Run, run, run until you reach the finish line.”", "The word run appears three times.", 
+                        "In “The bell rang, rang, rang across the hall,” which clue shows repetition?", 
+                        ["A. The word rang appears three times.", "B. The words have matching ending sounds.", "C. Several nearby words begin with the same consonant sound.", "D. Several clauses begin with the same phrase."], 0, 
+                        "Correct. The word rang is deliberately repeated. Repeating it can draw attention to the bell’s continued ringing.", 
+                        "The correct answer is A. The word rang appears three times.", 
+                        "Check whether one word appears more than once.");
+                    break;
+                case 6:
+                    html = renderClueScreen(6, 'c6', "Alliteration", "Alliteration Alert", 
+                        "Alliteration is the repetition of the same or similar initial consonant sounds in nearby words. It can draw attention to words and contribute to the sound or mood of a line.", 
+                        "Bright birds bounce by the bay.", "Bright / birds / bounce / by / bay repeat the initial /b/ sound.", 
+                        "Which sentence contains alliteration?", 
+                        ["A. The rain fell during the night.", "B. Mia made many maps.", "C. A young artist painted a mural.", "D. A small boat crossed the lake."], 1, 
+                        "Exactly. Mia, made, many, and maps repeat the initial /m/ sound. That pattern is alliteration.", 
+                        "The correct answer is B. Mia made many maps. These repeat the /m/ sound.", 
+                        "Which sentence contains several different words that begin with the same consonant sound?");
+                    break;
+                case 7:
+                    html = renderClueScreen(7, 'c7', "Anaphora", "Anaphora Analyst", 
+                        "Anaphora is the repetition of a word or phrase at the beginning of successive clauses, sentences, or lines. It directs attention to an idea and can build emphasis or momentum.", 
+                        "Every learner can ask. Every learner can explore. Every learner can grow.", "Every learner begins each successive sentence.", 
+                        "Which statement uses anaphora?", 
+                        ["A. The clock ticked loudly.", "B. The cat sat on the mat.", "C. We will listen. We will learn. We will lead.", "D. The tiny turtle travelled slowly."], 2, 
+                        "Case solved. We will appears at the beginning of successive sentences. That specific pattern is anaphora.", 
+                        "The correct answer is C. The phrase 'We will' repeats at the beginning of sentences.", 
+                        "Find the phrase that starts each sentence.");
+                    break;
+                case 8:
+                    html = renderScreen8();
+                    btnNext.style.display = 'inline-flex'; btnNextText.innerText = "Start Challenge";
+                    btnNext.classList.add('btn-glow');
+                    break;
+                case 9:
+                    html = renderScreen9();
+                    btnNext.style.display = (state.screen9Index === 5) ? 'inline-flex' : 'none';
+                    btnNextText.innerText = "Next Screen";
+                    break;
+                case 10:
+                    html = renderScreen10();
+                    btnNext.style.display = 'inline-flex'; btnNextText.innerText = "Submit Evidence";
+                    btnNext.classList.add('btn-glow');
+                    break;
+                case 11:
+                    html = renderScreen11();
+                    btnNext.style.display = (state.screen11Index === 4) ? 'inline-flex' : 'none';
+                    btnNextText.innerText = "Next Screen";
+                    break;
+                case 12:
+                    html = renderScreen12();
+                    btnNext.style.display = 'inline-flex'; btnNextText.innerText = "Final Results";
+                    btnNext.classList.add('btn-glow');
+                    break;
+                case 13:
+                    html = renderScreen13();
+                    btnNext.style.display = 'none';
+                    break;
+            }
+            container.innerHTML = html;
+        }
+
+        function navigateNext() {
+            if (state.currentScreen === 12 && state.completedActivities.size < 17) {
+                const reqTasks = [
+                    {id:'w1', s:3}, {id:'c4', s:4}, {id:'c5', s:5}, {id:'c6', s:6}, {id:'c7', s:7},
+                    {id:'m0', s:9}, {id:'m1', s:9}, {id:'m2', s:9}, {id:'m3', s:9}, {id:'m4', s:9}, {id:'m5', s:9},
+                    {id:'p0', s:11}, {id:'p1', s:11}, {id:'p2', s:11}, {id:'p3', s:11}, {id:'p4', s:11},
+                    {id:'a1', s:12}
+                ];
+                let missing = reqTasks.find(t => !state.completedActivities.has(t.id));
+                
+                showCustomAlert("You have unfinished tasks (some may still need a second attempt). We will take you to the first unfinished task.", () => {
+                    if (missing) {
+                        state.currentScreen = missing.s;
+                        if (missing.s === 9) state.screen9Index = parseInt(missing.id.replace('m',''));
+                        if (missing.s === 11) state.screen11Index = parseInt(missing.id.replace('p',''));
+                        renderScreen();
+                    }
+                });
+                return;
+            }
+            if (state.currentScreen < 13) { state.currentScreen++; renderScreen(); }
+        }
+        function navigateBack() { if (state.currentScreen > 1) { state.currentScreen--; renderScreen(); } }
+
+        function answerItem(id, isScored, choiceIdx, correctIdx, feedbackCorrect, feedbackNeutral, hintText) {
+            let attempt = state.items[id] || { count: 0, status: null, lastChoice: null };
+            if (attempt.status === 'done' || attempt.status === 'correct') return;
+
+            attempt.count++;
+            attempt.lastChoice = choiceIdx;
+            
+            if (choiceIdx === correctIdx) {
+                attempt.status = 'correct';
+                if (isScored) {
+                    state.score += (attempt.count === 1) ? 10 : 5;
+                    if (attempt.count === 1) state.firstAttemptCorrect++;
+                }
+                playCorrectSound();
+                markActivityComplete(id);
+                // Badge checks
+                if(id==='c4') state.badges.rhyme = true;
+                if(id==='c5') state.badges.repetition = true;
+                if(id==='c6') state.badges.alliteration = true;
+                if(id==='c7') state.badges.anaphora = true;
+            } else {
+                if (attempt.count === 1) {
+                    attempt.status = 'retry';
+                    speakText("Incorrect. Listen to the hint.");
+                } else {
+                    attempt.status = 'done';
+                    markActivityComplete(id);
+                    speakText("Incorrect second attempt.");
+                }
+            }
+            state.items[id] = attempt;
+            renderScreen();
+        }
+
+        /** SCREEN RENDERERS **/
+
+        function renderScreen1() {
+            return `
+                <div class="glass-panel w-full p-6 sm:p-10 rounded-2xl shadow-2xl border border-gold/30 text-center flex flex-col items-center">
+                    <h2 class="font-serif text-2xl sm:text-4xl font-bold text-navy mb-2 tracking-wide">THE MISSING SOUND CLUES</h2>
+                    <p class="text-sm sm:text-lg text-slate font-medium mb-4">Every sound tells a story. Can you find the pattern?</p>
+                    
+                    <div class="bg-white p-4 rounded-xl border-l-4 border-gold shadow-sm text-left max-w-lg mb-6 w-full">
+                        <strong class="text-navy text-sm block mb-1">Target competency: EN9LIT-I-1</strong>
+                        <p class="text-xs text-slate font-semibold mb-2">By the end of this mission, you can:</p>
+                        <ol class="list-decimal list-inside text-xs text-slate space-y-1">
+                            <li>Identify rhyme, repetition, alliteration, and anaphora in literary lines.</li>
+                            <li>Point to the exact words or phrases that show each sound device.</li>
+                            <li>Explain how a sound pattern shapes rhythm, emphasis, mood, or meaning.</li>
+                        </ol>
+                    </div>
+
+                    <button onclick="state.currentScreen=2; renderScreen();" class="px-8 py-3.5 bg-gold text-navy font-extrabold text-base sm:text-lg rounded-xl hover:bg-gold-light transition transform hover:scale-105 shadow-xl flex items-center space-x-3 btn-glow">
+                        <span>START INVESTIGATION</span><i class="fa-solid fa-play"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderScreen2() {
+            return `
+                <div class="glass-panel w-full p-6 sm:p-8 rounded-2xl shadow-xl border border-gold/30">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <i class="fa-solid fa-folder-open text-gold text-2xl"></i>
+                        <h2 class="font-serif text-xl sm:text-2xl font-bold text-navy">Your Detective Briefing</h2>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate mb-4">Your mission: investigate four sound devices.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div class="bg-white p-3 rounded-xl border-l-4 border-gold shadow-sm"><strong class="text-navy text-sm block">Rhyme</strong><span class="text-xs text-slate">Matching or similar ending sounds</span></div>
+                        <div class="bg-white p-3 rounded-xl border-l-4 border-gold shadow-sm"><strong class="text-navy text-sm block">Repetition</strong><span class="text-xs text-slate">A word, phrase, line, or pattern used again</span></div>
+                        <div class="bg-white p-3 rounded-xl border-l-4 border-gold shadow-sm"><strong class="text-navy text-sm block">Alliteration</strong><span class="text-xs text-slate">Repetition of initial consonant sounds in nearby words</span></div>
+                        <div class="bg-white p-3 rounded-xl border-l-4 border-gold shadow-sm"><strong class="text-navy text-sm block">Anaphora</strong><span class="text-xs text-slate">Repeated words or phrases at the beginnings of successive clauses, sentences, or lines</span></div>
+                    </div>
+
+                    <div class="bg-navy/5 p-4 rounded-xl text-xs text-slate mb-4 border border-navy/10">
+                        Sound patterns can create rhythm, emphasize ideas, and influence how readers experience a poem. Their effects depend on the words and context.
+                    </div>
+                    <p class="text-xs font-semibold text-slate"><i class="fa-solid fa-circle-info text-gold mr-1"></i> How to play: Explore each sound clue, answer its checkpoint, use a hint if needed, collect points, and complete the final case.</p>
+                </div>
+            `;
+        }
+
+        function renderScreen3() {
+            const att = state.items['w1'] || { count: 0, status: null };
+            const isDone = att.status === 'done' || att.status === 'correct';
+            return `
+                <div class="glass-panel w-full p-6 rounded-2xl shadow-xl border border-gold/30">
+                    <div class="flex justify-between mb-3"><span class="px-2 py-1 bg-gold/20 text-gold-dark font-bold text-xs rounded">Unscored Warm-up</span></div>
+                    <h2 class="font-serif text-lg font-bold text-navy mb-2" id="w1-text">Read these words aloud: rain — train — plain. What do you notice?</h2>
+                    <button onclick="playText('w1-text')" class="mb-4 text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10"><i class="fa-solid fa-headphones"></i> Listen</button>
+                    
+                    <div class="space-y-2 mb-4">
+                        ${["A. They repeat the same word.", "B. They have similar ending sounds.", "C. They begin with the same consonant sound.", "D. They repeat the same phrase at the beginning of successive lines."].map((choice, idx) => {
+                            let style = "bg-white text-navy border-slate/20";
+                            if (isDone && idx === 1) style = "bg-emerald-100 border-emerald-500 font-bold";
+                            else if (isDone && att.lastChoice === idx) style = "bg-rose-100 border-rose-400";
+                            return `<button onclick="answerItem('w1', false, ${idx}, 1, 'Correct. Rain, train, and plain share similar ending sounds. That is a clue for rhyme.', 'The correct answer is B. Rain, train, and plain share similar ending sounds.', 'Read the three words aloud. Listen to how their ending sounds compare.')" ${isDone?'disabled':''} class="w-full text-left p-3 rounded-xl border text-xs sm:text-sm ${style}">${choice}</button>`;
+                        }).join('')}
+                    </div>
+                    ${renderFeedbackPanel(att, 'Correct. Rain, train, and plain share similar ending sounds. That is a clue for rhyme.', 'Not quite. Read the three words aloud. Listen to how their ending sounds compare.', 'The correct answer is Option B. They have similar ending sounds.', false)}
+                </div>
+            `;
+        }
+
+        function renderClueScreen(screenNum, id, title, badgeName, def, ev, evExpl, q, choices, ansIdx, fbCor, fbNeu, hint) {
+            const stage = state.revealStage[screenNum] || 1;
+            const att = state.items[id] || { count: 0 };
+            const isDone = att.status === 'done' || att.status === 'correct';
+            const btnNext = document.getElementById('btn-next');
+            if (isDone && btnNext) btnNext.classList.add('btn-glow');
+
+            return `
+                <div class="glass-panel w-full p-5 rounded-2xl shadow-xl border border-gold/30 space-y-4">
+                    <div class="flex justify-between border-b border-navy/10 pb-2">
+                        <h2 class="font-serif text-lg font-bold text-navy">Sound Clue ${screenNum - 3}: ${title}</h2>
+                        <span class="text-xs font-bold text-gold-dark bg-gold/10 px-2 py-1 rounded"><i class="fa-solid fa-ribbon"></i> ${badgeName}</span>
+                    </div>
+
+                    <div class="text-xs text-navy space-y-2" id="clue-txt-${screenNum}">
+                        <p><strong>Definition:</strong> ${def}</p>
+                        <div class="bg-white p-3 border border-slate/20 rounded-xl">
+                            <span class="font-bold text-slate">Study the evidence:</span>
+                            <p class="italic text-sm my-1">${ev}</p>
+                            <span class="text-gold-dark font-semibold">Evidence: ${evExpl}</span>
+                        </div>
+                    </div>
+                    <button onclick="playText('clue-txt-${screenNum}')" class="text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10"><i class="fa-solid fa-headphones"></i> Listen to Example</button>
+
+                    ${stage === 1 ? `<button onclick="state.revealStage[${screenNum}]=2; renderScreen();" class="w-full py-2 bg-navy/10 font-bold text-xs rounded-xl hover:bg-navy/20 btn-glow">SHOW HOW TO SPOT IT</button>` : ''}
+
+                    ${stage >= 2 ? `
+                        <div class="bg-navy/5 p-3 rounded-xl border border-navy/10 text-xs text-slate space-y-2">
+                            <span class="font-bold text-navy">How to spot it:</span>
+                            <ol class="list-decimal list-inside ml-2">
+                                <li>Read the words aloud.</li>
+                                <li>Compare their sounds and patterns.</li>
+                                <li>Check the defining feature (ending sounds, repeating initials, etc).</li>
+                            </ol>
+                            <p class="text-gold-dark pt-1 border-t border-navy/10"><i class="fa-solid fa-lightbulb"></i> <strong>Detective tip:</strong> Focus on the sound and meaning, not just spelling.</p>
+                        </div>
+                        ${stage === 2 ? `<button onclick="state.revealStage[${screenNum}]=3; renderScreen();" class="w-full py-2 bg-gold text-navy font-bold text-xs rounded-xl hover:bg-gold-light btn-glow">CONTINUE TO CHECKPOINT</button>` : ''}
+                    ` : ''}
+
+                    ${stage >= 3 ? `
+                        <div class="pt-3 border-t border-navy/10">
+                            <h3 class="font-bold text-sm mb-2" id="chk-${screenNum}">Checkpoint: ${q}</h3>
+                            <button onclick="playText('chk-${screenNum}')" class="text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10 mb-2"><i class="fa-solid fa-headphones"></i> Listen to Question</button>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                                ${choices.map((c, i) => {
+                                    let style = "bg-white text-navy border-slate/20";
+                                    if (isDone && i === ansIdx) style = "bg-emerald-100 border-emerald-500 font-bold";
+                                    else if (isDone && att.lastChoice === i) style = "bg-rose-100 border-rose-400";
+                                    return `<button onclick="answerItem('${id}', true, ${i}, ${ansIdx}, '${fbCor.replace(/'/g,"\\'")}', '${fbNeu.replace(/'/g,"\\'")}', '${hint.replace(/'/g,"\\'")}')" ${isDone?'disabled':''} class="text-left p-3 rounded-xl border text-xs ${style}">${c}</button>`;
+                                }).join('')}
+                            </div>
+                            ${renderFeedbackPanel(att, fbCor, hint, fbNeu, true)}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderScreen8() {
+            return `
+                <div class="glass-panel w-full p-6 rounded-2xl shadow-xl border border-gold/30">
+                    <h2 class="font-serif text-xl font-bold text-navy mb-3"><i class="fa-solid fa-clipboard-list text-gold mr-2"></i>The Detective's Comparison Board</h2>
+                    <p class="text-xs text-slate mb-4">Review the clues before the challenges.</p>
+                    <div class="space-y-2 mb-4">
+                        ${[
+                            {n: 'Rhyme', q: 'Do the words have similar ending sounds?', c: 'Matching or similar ending sounds; example: night / bright.'},
+                            {n: 'Repetition', q: 'Is a word, phrase, line, or pattern used again?', c: 'A recurring word or phrase; example: run, run, run.'},
+                            {n: 'Alliteration', q: 'Do nearby words begin with the same consonant sound?', c: 'Repeated initial consonant sounds; example: Mia made maps.'},
+                            {n: 'Anaphora', q: 'Do successive clauses or lines begin with the same words?', c: 'Repeated beginnings; example: “We will…”'}
+                        ].map(d => `
+                            <details class="bg-white rounded-xl border border-slate/20 p-3 text-xs">
+                                <summary class="font-bold text-navy cursor-pointer">${d.n}</summary>
+                                <p class="mt-2 text-slate"><strong>Question to ask:</strong> ${d.q}<br><strong>Clue to look for:</strong> ${d.c}</p>
+                            </details>
+                        `).join('')}
+                    </div>
+                    <div class="bg-navy/10 p-3 rounded-xl text-xs text-navy border-l-4 border-gold">
+                        <strong>Most important distinction:</strong> Repetition describes a broad pattern. Anaphora describes a more specific pattern of repetition at the beginning of successive clauses, sentences, or lines. When both descriptions apply, select anaphora if the question asks for the most specific device.
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderScreen9() {
+            const idx = state.screen9Index;
+            const q = mixedQuestions[idx];
+            const att = state.items[q.id] || { count: 0 };
+            const isDone = att.status === 'done' || att.status === 'correct';
+
+            return `
+                <div class="glass-panel w-full p-5 rounded-2xl shadow-xl border border-gold/30">
+                    <div class="flex justify-between items-center mb-3 text-xs font-semibold">
+                        <span class="px-2 py-1 bg-navy text-gold rounded">Sound-Clue Match</span><span>Question ${idx+1} of 6</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate/20 mb-3" id="sq-${idx}">
+                        <p class="text-sm font-bold text-navy">${q.text}</p>
+                    </div>
+                    <button onclick="playText('sq-${idx}')" class="text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10 mb-3"><i class="fa-solid fa-headphones"></i> Listen</button>
+                    
+                    <div class="space-y-2 mb-3">
+                        ${q.choices.map((c, i) => {
+                            let style = "bg-white text-navy border-slate/20";
+                            if (isDone && i === q.correct) style = "bg-emerald-100 border-emerald-500 font-bold";
+                            else if (isDone && att.lastChoice === i) style = "bg-rose-100 border-rose-400";
+                            let fbD = `The correct answer is ${q.choices[q.correct]}. Evidence: ${q.evidence}. ${q.feedbackCorrect}`;
+                            return `<button onclick="answerItem('${q.id}', true, ${i}, ${q.correct}, '${q.feedbackCorrect.replace(/'/g,"\\'")}', '${fbD.replace(/'/g,"\\'")}', '${q.hint.replace(/'/g,"\\'")}')" ${isDone?'disabled':''} class="w-full text-left p-3 rounded-xl border text-xs ${style}">${c}</button>`;
+                        }).join('')}
+                    </div>
+                    ${renderFeedbackPanel(att, q.feedbackCorrect, q.hint, `The correct answer is ${q.choices[q.correct]}. Evidence: ${q.evidence}. ${q.feedbackCorrect}`, true)}
+                    
+                    <div class="flex justify-between mt-3">
+                        <button onclick="if(state.screen9Index>0){state.screen9Index--;renderScreen();}" class="px-3 py-1 bg-slate/20 text-xs rounded font-bold disabled:opacity-30" ${idx===0?'disabled':''}>Previous</button>
+                        <button onclick="if(state.screen9Index<5){state.screen9Index++;renderScreen();}" class="px-3 py-1 bg-gold text-navy text-xs rounded font-bold disabled:opacity-30 ${isDone?'btn-glow':''}" ${idx===5?'disabled':''}>Next Q</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderScreen10() {
+            return `
+                <div class="glass-panel w-full p-6 text-center rounded-2xl shadow-xl border border-gold/30">
+                    <h2 class="font-serif text-xl font-bold text-navy mb-4">A Journey of Courage</h2>
+                    <div class="bg-white p-5 rounded-xl border border-slate/20 font-serif text-sm leading-loose text-left max-w-md mx-auto mb-4" id="poem-text">
+                        Soft rain swept the silent street,<br>Lanterns shimmered by my feet.<br>“Come along, come along,” I called,<br>While gray clouds gathered over the field.<br>When the bell rang, doors opened slowly.<br>When the bell rang, friends came closer.
+                    </div>
+                    <button onclick="playText('poem-text')" class="text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10 mb-4"><i class="fa-solid fa-headphones"></i> Listen to Poem</button>
+                    <p class="text-xs text-slate max-w-md mx-auto">Read the poem carefully. Four sound-device clues are hidden in its lines. On the next screen, you will highlight words or lines, select a repeated phrase, and choose the effect of a repeated opening.</p>
+                </div>
+            `;
+        }
+
+        function renderScreen11() {
+            const idx = state.screen11Index;
+            const task = finalTasks[idx];
+            const att = state.items[task.id] || { count: 0 };
+            const isDone = att.status === 'done' || att.status === 'correct';
+
+            return `
+                <div class="glass-panel w-full p-5 rounded-2xl shadow-xl border border-gold/30">
+                    <div class="flex justify-between items-center mb-3 text-xs font-semibold">
+                        <span class="px-2 py-1 bg-navy text-gold rounded">Submit Evidence</span><span>Task ${idx+1} of 5</span>
+                    </div>
+                    <h3 class="font-serif text-base font-bold text-navy mb-1" id="t-inst-${idx}">${task.title}</h3>
+                    <p class="text-xs text-slate mb-3">${task.instruction}</p>
+                    <button onclick="playText('t-inst-${idx}')" class="text-xs text-gold border border-gold px-2 py-1 rounded hover:bg-gold/10 mb-3"><i class="fa-solid fa-headphones"></i> Listen</button>
+
+                    <div class="bg-navy/5 p-3 rounded-xl border border-navy/10 text-sm font-serif mb-4 shadow-inner">
+                        ${task.lines.map(l => `<p class="py-1">${l}</p>`).join('')}
+                    </div>
+
+                    ${renderInteractiveTask(idx, task, att, isDone)}
+                    ${renderFeedbackPanel(att, task.feedbackCorrect, task.hint, task.feedbackNeutralFail, true)}
+
+                    <div class="flex justify-between mt-4">
+                        <button onclick="if(state.screen11Index>0){state.screen11Index--;renderScreen();}" class="px-3 py-1.5 bg-slate/20 text-xs rounded font-bold disabled:opacity-30" ${idx===0?'disabled':''}>Previous Question</button>
+                        <button onclick="if(state.screen11Index<4){state.screen11Index++;renderScreen();}" class="px-3 py-1.5 bg-gold text-navy text-xs rounded font-bold disabled:opacity-30 ${isDone?'btn-glow':''}" ${idx===4?'disabled':''}>Next Question</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderInteractiveTask(idx, task, att, isDone) {
+            const ans = state.screen11Answers[idx];
+            let hasAns = ans !== undefined && (Array.isArray(ans) ? ans.length>0 : ans!==null);
+            
+            let content = '';
+            if (task.type === 'highlight') {
+                content = `<div class="flex flex-wrap gap-2 justify-center mb-3">
+                    ${task.options.map(w => {
+                        const sel = ans?.includes(w);
+                        return `<button onclick="toggH('${w}', ${idx})" ${isDone?'disabled':''} class="px-3 py-1.5 border rounded text-xs font-serif ${sel?'bg-gold text-navy font-bold':'bg-white hover:bg-gold/20'}">${w}</button>`;
+                    }).join('')}
+                </div>`;
+            } else if (task.type === 'drag_or_tap') {
+                content = `<div class="flex flex-wrap gap-2 justify-center mb-3">
+                    ${task.options.map(p => {
+                        const sel = ans === p;
+                        return `<button onclick="selS('${p}', ${idx})" ${isDone?'disabled':''} class="px-3 py-1.5 border rounded text-xs font-serif ${sel?'bg-gold text-navy font-bold':'bg-white hover:bg-gold/20'}">${p}</button>`;
+                    }).join('')}
+                </div>`;
+            } else if (task.type === 'highlight_line' || task.type === 'highlight_phrase') {
+                content = `<div class="space-y-2 mb-3">
+                    ${task.options.map(o => {
+                        const sel = ans === o;
+                        return `<button onclick="selS('${o}', ${idx})" ${isDone?'disabled':''} class="w-full text-left p-2 border rounded text-xs font-serif ${sel?'bg-gold text-navy font-bold':'bg-white hover:bg-gold/20'}">${o}</button>`;
+                    }).join('')}
+                </div>`;
+            } else if (task.type === 'select_effect') {
+                content = `<div class="space-y-2 mb-3">
+                    ${task.options.map((o, i) => {
+                        const sel = ans === i;
+                        return `<button onclick="selS(${i}, ${idx})" ${isDone?'disabled':''} class="w-full text-left p-2 border rounded text-xs ${sel?'bg-gold text-navy font-bold':'bg-white hover:bg-gold/20'}">${o}</button>`;
+                    }).join('')}
+                </div>`;
+            }
+
+            return `<div>${content}<button onclick="subT(${idx})" ${(!hasAns||isDone)?'disabled':''} class="w-full py-1.5 bg-navy text-gold text-xs font-bold rounded disabled:opacity-40">Submit Evidence</button></div>`;
+        }
+
+        function toggH(w, idx) {
+            let c = state.screen11Answers[idx] || [];
+            if(c.includes(w)) c = c.filter(x => x !== w); else c.push(w);
+            state.screen11Answers[idx] = c; renderScreen();
+        }
+        function selS(v, idx) { state.screen11Answers[idx] = v; renderScreen(); }
+        function subT(idx) {
+            const task = finalTasks[idx]; const ans = state.screen11Answers[idx];
+            let isC = false;
+            if(task.type === 'highlight') { isC = Array.isArray(ans) && task.target.every(t=>ans.includes(t)) && ans.length===task.target.length; }
+            else { isC = ans === task.target; }
+            answerItem(task.id, true, isC?1:0, 1, task.feedbackCorrect, task.feedbackNeutralFail, task.hint);
+        }
+
+        function renderScreen12() {
+            const ccs = state.creativeChallengeState;
+            const authAtt = state.items['a1'] || {count: 0};
+            const aDone = authAtt.status === 'done' || authAtt.status === 'correct';
+
+            return `
+                <div class="glass-panel w-full p-5 rounded-2xl shadow-xl border border-gold/30 h-96 overflow-y-auto">
+                    <h2 class="font-serif text-lg font-bold text-navy mb-3"><i class="fa-solid fa-square-poll-vertical text-gold mr-2"></i>Case Debrief</h2>
+                    <div class="bg-navy/10 p-3 rounded-xl text-xs text-navy mb-4 border-l-4 border-gold">
+                        <strong>Reflection:</strong> Why should readers examine sound patterns? <span class="italic text-slate">Sound patterns help readers notice emphasis, rhythm, and the way a writer communicates an idea. Their effects depend on the words and context.</span>
+                    </div>
+
+                    <details class="bg-white rounded-xl border border-slate/20 p-3 text-xs mb-3" open>
+                        <summary class="font-bold text-navy cursor-pointer">Literary Connection: "The Tyger" by William Blake</summary>
+                        <div class="mt-2" id="auth-txt">
+                            <p class="italic mb-2">Tyger! Tyger! burning bright<br>In the forests of the night,</p>
+                            <p class="mb-2"><strong>Clues found:</strong> Repetition (“Tyger! Tyger!”), Alliteration (“burning bright”), Rhyme (“bright / night”).</p>
+                            <p class="font-bold mb-2">What feeling do these sound patterns help create in the excerpt?</p>
+                            <div class="space-y-1 mb-2">
+                                ${["A. Awe and mystery about the tiger and its creation.", "B. Boredom and indifference toward an ordinary animal.", "C. Anger and frustration about the forest at night.", "D. Sadness and loneliness about a distant place."].map((c, i) => {
+                                    let style = "bg-white border-slate/20";
+                                    if(aDone && i===0) style = "bg-emerald-100 border-emerald-500 font-bold";
+                                    else if(aDone && authAtt.lastChoice===i) style = "bg-rose-100 border-rose-400";
+                                    
+                                    const fbC = 'Correct! The repeated name draws attention to the tiger, “burning bright” gives the line a striking sound, and the rhyme connects the tiger’s brightness with the night setting. Together, these patterns create awe, curiosity, and mystery.';
+                                    const fbN = 'The correct answer is Option A. The sound patterns create awe, curiosity, and mystery.';
+                                    const hT = 'Think about how the repeated name, strong initial sound, and rhyme shape the speaker’s description.';
+                                    
+                                    return `<button onclick="answerItem('a1', false, ${i}, 0, '${fbC.replace(/'/g,"\\'")}', '${fbN.replace(/'/g,"\\'")}', '${hT.replace(/'/g,"\\'")}')" ${aDone?'disabled':''} class="w-full text-left p-2 border rounded ${style}">${c}</button>`;
+                                }).join('')}
+                            </div>
+                            ${renderFeedbackPanel(authAtt, 'Correct! The repeated name draws attention to the tiger, “burning bright” gives the line a striking sound, and the rhyme connects the tiger’s brightness with the night setting. Together, these patterns create awe, curiosity, and mystery.', 'Think about how the repeated name, strong initial sound, and rhyme shape the speaker’s description.', 'The correct answer is Option A. The sound patterns create awe, curiosity, and mystery.', false)}
+                        </div>
+                    </details>
+
+                    <details class="bg-white rounded-xl border border-slate/20 p-3 text-xs mb-2">
+                        <summary class="font-bold text-navy cursor-pointer">Optional Creative Challenge: Anaphora</summary>
+                        <div class="mt-2 space-y-2">
+                            <p class="text-slate mb-1">Write two short lines that begin with the same phrase.</p>
+                            <input type="text" id="cc-p" placeholder="Repeated opening phrase..." value="${ccs.p}" onchange="state.creativeChallengeState.p=this.value" class="w-full p-2 border rounded">
+                            <input type="text" id="cc-l1" placeholder="Line 1" value="${ccs.l1}" onchange="state.creativeChallengeState.l1=this.value" class="w-full p-2 border rounded">
+                            <input type="text" id="cc-l2" placeholder="Line 2" value="${ccs.l2}" onchange="state.creativeChallengeState.l2=this.value" class="w-full p-2 border rounded">
+                            <button onclick="checkCreative()" class="px-3 py-1 bg-navy text-gold rounded font-bold">Check My Pattern</button>
+                            <p id="cc-msg" class="mt-1 font-bold ${ccs.checked ? (ccs.msg.includes('Great')?'text-emerald-700':'text-amber-700') : 'hidden'}">${ccs.msg}</p>
+                        </div>
+                    </details>
+                </div>
+            `;
+        }
+
+        function checkCreative() {
+            const ccs = state.creativeChallengeState;
+            const p = document.getElementById('cc-p').value.trim().toLowerCase();
+            const l1 = document.getElementById('cc-l1').value.trim().toLowerCase();
+            const l2 = document.getElementById('cc-l2').value.trim().toLowerCase();
+            ccs.p = p; ccs.l1 = l1; ccs.l2 = l2; ccs.checked = true;
+            if(!p) { ccs.msg = "Please enter an opening phrase."; }
+            else if (l1.startsWith(p) && l2.startsWith(p)) { ccs.msg = "Great job! That repeated opening is anaphora."; }
+            else { ccs.msg = "Revise so the same phrase appears at the beginning of both lines."; }
+            
+            const msgEl = document.getElementById('cc-msg');
+            if (msgEl) {
+                msgEl.innerText = ccs.msg;
+                msgEl.className = "mt-1 font-bold " + (ccs.msg.includes('Great') ? 'text-emerald-700' : 'text-amber-700');
+            }
+        }
+
+        function renderScreen13() {
+            let title = "", msg = "";
+            if (state.score >= 120) {
+                title = "CASE MASTERED!";
+                msg = `You completed the investigation and earned ${state.score}/150. Your Sound Pattern Master badge is unlocked.`;
+                state.badges.master = true;
+            } else if (state.score > 0) {
+                title = "INVESTIGATION COMPLETE!";
+                msg = `You attempted every required task and earned ${state.score}/150. Review the clues and strengthen your sound-device skills.`;
+            } else {
+                title = "INVESTIGATION COMPLETE.";
+                msg = `You attempted every required task. Review the evidence and try the mission again to strengthen your skills.`;
+            }
+            state.badges.sleuth = true;
+
+            const bL = [
+                { id: 'rhyme', name: 'Rhyme Ranger', icon: 'fa-music', desc: 'Solved Rhyme' },
+                { id: 'repetition', name: 'Repetition Tracker', icon: 'fa-rotate', desc: 'Solved Repetition' },
+                { id: 'alliteration', name: 'Alliteration Alert', icon: 'fa-bolt', desc: 'Solved Allit.' },
+                { id: 'anaphora', name: 'Anaphora Analyst', icon: 'fa-align-left', desc: 'Solved Anaphora' },
+                { id: 'sleuth', name: 'Sound Sleuth', icon: 'fa-user-secret', desc: 'Complete' },
+                { id: 'master', name: 'Pattern Master', icon: 'fa-crown', desc: 'Score 120+' }
+            ];
+
+            return `
+                <div class="glass-panel w-full p-6 text-center rounded-2xl shadow-xl border border-gold">
+                    <div class="w-16 h-16 rounded-full bg-gold text-navy flex items-center justify-center text-2xl mx-auto mb-3 border border-navy shadow"><i class="fa-solid fa-trophy"></i></div>
+                    <h2 class="font-serif text-2xl font-bold text-navy mb-1">${title}</h2>
+                    <p class="text-sm text-slate mb-4">${msg}</p>
+
+                    <div class="bg-navy text-ivory p-4 rounded-xl max-w-sm mx-auto mb-4 flex justify-around items-center">
+                        <div><span class="text-xs text-gold uppercase block">Total Points</span><span class="font-bold text-xl text-gold">${state.score} / 150</span></div>
+                        <div class="border-r border-ivory/20 h-8"></div>
+                        <div><span class="text-xs text-ivory/70 uppercase block">Attempt 1 Correct</span><span class="font-bold text-lg text-ivory">${state.firstAttemptCorrect} / 15</span></div>
+                    </div>
+
+                    <h3 class="font-serif font-bold text-navy text-sm mb-2">Badge Cabinet</h3>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
+                        ${bL.map(b => {
+                            const e = state.badges[b.id];
+                            return `<div class="p-2 border rounded-xl flex flex-col items-center justify-center ${e?'bg-white border-gold text-navy':'bg-slate/10 border-slate/20 text-slate/40 opacity-50'}">
+                                <i class="fa-solid ${b.icon} text-lg mb-1 ${e?'text-gold':''}"></i>
+                                <span class="text-[10px] font-bold text-center leading-tight">${b.name}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button onclick="location.reload()" class="px-5 py-2 bg-slate text-ivory font-bold text-xs rounded hover:bg-slate-dark">Replay Mission</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFeedbackPanel(att, correctTxt, hintTxt, neutralFailTxt, showPoints) {
+            if (att.count === 0) return '';
+            let style = "", txt = "";
+            if (att.status === 'correct') {
+                style = "bg-emerald-50 text-emerald-800 border-emerald-200";
+                txt = `<strong>Correct!${showPoints ? ` (+${att.count===1?10:5} pts)` : ''}</strong> ${correctTxt}`;
+            } else if (att.status === 'retry') {
+                style = "bg-amber-50 text-amber-900 border-amber-200";
+                txt = `<strong>Incorrect (Attempt 1 of 2). Hint:</strong> ${hintTxt}`;
+            } else {
+                style = "bg-slate-100 text-slate-800 border-slate-300";
+                txt = `<strong>Incorrect (Attempt 2 of 2).</strong> ${neutralFailTxt}`;
+            }
+            return `<div class="feedback-panel p-3 mt-3 rounded-xl border text-xs ${style}">${txt}</div>`;
+        }
+
+    </script>
+</body>
+</html>

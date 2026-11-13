@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Literary Detectives: The Sound and Meaning Quest</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Special+Elite&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#172A3A',
+                        'navy-dark': '#0F1C27',
+                        'navy-light': '#243E54',
+                        ivory: '#F7F4ED',
+                        gold: '#C6A15B',
+                        'gold-light': '#E0BD78',
+                        slate: '#52616B',
+                        'slate-light': '#748A98',
+                        crimson: '#9E2A2B',
+                        greenish: '#2D6A4F'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        detective: ['"Special Elite"', 'cursive', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes popIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes scoreAnim {
+            0% { transform: translateY(0) scale(1); opacity: 1; color: #C6A15B; }
+            50% { transform: translateY(-20px) scale(1.5); opacity: 1; color: #E0BD78; }
+            100% { transform: translateY(-40px) scale(1); opacity: 0; color: #C6A15B; }
+        }
+        .animate-pop {
+            animation: popIn 0.3s ease-out forwards;
+        }
+        .score-float {
+            position: absolute;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 50;
+            animation: scoreAnim 1s ease-out forwards;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #172A3A; }
+        ::-webkit-scrollbar-thumb { background: #52616B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #C6A15B; }
+        
+        .token-btn.selected {
+            background-color: #C6A15B !important;
+            color: #172A3A !important;
+            border-color: #C6A15B !important;
+            font-weight: 700;
+        }
+        
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="bg-navy text-ivory font-sans min-h-screen flex flex-col justify-between selection:bg-gold selection:text-navy overflow-x-hidden">
+
+    <!-- Header / Navigation Bar -->
+    <header class="bg-navy-dark border-b border-gold/30 px-4 py-3 sticky top-0 z-50 shadow-md">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gold/20 border border-gold flex items-center justify-center text-gold shadow-[0_0_10px_rgba(198,161,91,0.3)]">
+                    <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs tracking-wider text-gold font-detective uppercase leading-tight">Literary Detectives</h1>
+                    <p class="text-sm font-semibold text-ivory leading-tight">Mission 2: Decode the Hidden Meaning</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 sm:space-x-4 relative">
+                <!-- Floating score target -->
+                <div id="score-anchor" class="relative">
+                    <div class="bg-navy-light px-3 py-1.5 rounded-lg border border-slate/40 flex items-center space-x-2">
+                        <i class="fa-solid fa-star text-gold text-sm"></i>
+                        <span class="text-xs text-slate-light font-medium hidden sm:inline">SCORE:</span>
+                        <span id="global-score" class="text-base font-bold text-gold transition-all duration-300">0</span>
+                        <span class="text-xs text-slate-light">/ 100</span>
+                    </div>
+                </div>
+
+                <!-- SFX Toggle -->
+                <button onclick="toggleSFX()" aria-label="Toggle Sound Effects" class="p-2 rounded-lg bg-navy-light border border-slate/40 text-slate-light hover:text-gold transition flex items-center justify-center" title="Toggle Sound Effects">
+                    <i id="sfx-icon" class="fa-solid fa-bell"></i>
+                </button>
+
+                <!-- TTS Controls -->
+                <div class="flex items-center bg-navy-light rounded-lg border border-slate/40 p-1">
+                    <button id="tts-toggle" onclick="toggleTTS()" aria-label="Toggle Read Aloud Audio" class="px-2 py-1 rounded text-xs font-medium text-slate-light hover:text-ivory flex items-center space-x-1 transition">
+                        <i id="tts-icon" class="fa-solid fa-volume-xmark text-crimson"></i>
+                        <span id="tts-status-text" class="hidden sm:inline">READ ALOUD: OFF</span>
+                    </button>
+                    <div id="tts-controls" class="hidden items-center space-x-1 pl-1 border-l border-slate/40">
+                        <button onclick="playTTSScreen()" title="Read Screen" class="p-1 text-gold hover:text-gold-light transition">
+                            <i class="fa-solid fa-play text-xs"></i>
+                        </button>
+                        <button onclick="stopTTS()" title="Stop Audio" class="p-1 text-slate-light hover:text-ivory transition">
+                            <i class="fa-solid fa-stop text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main id="app-container" class="max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-start relative">
+        <!-- Rendered dynamically -->
+    </main>
+
+    <!-- Footer Controls & Progress Bar -->
+    <footer class="bg-navy-dark border-t border-slate/30 py-3 px-4 z-40 sticky bottom-0">
+        <div class="max-w-5xl mx-auto flex flex-col gap-3">
+            
+            <!-- Progress Tracker -->
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gold font-medium">Required activities completed: <span id="progress-text" class="font-bold text-ivory">0 of 14</span></span>
+                <span id="screen-label" class="text-slate-light uppercase tracking-wide font-bold">Screen 1</span>
+            </div>
+            <div class="w-full bg-navy-light h-2 rounded-full overflow-hidden border border-slate/30">
+                <div id="progress-bar-fill" class="bg-gold h-full w-0 transition-all duration-500 shadow-[0_0_8px_rgba(198,161,91,0.6)]"></div>
+            </div>
+
+            <!-- Global Navigation -->
+            <div class="flex justify-between items-center pt-2 border-t border-slate/50/50 mt-1">
+                <button id="nav-back" onclick="navigate(-1)" class="px-5 py-2.5 bg-navy border border-slate/40 hover:border-gold text-ivory font-bold text-sm rounded-lg transition flex items-center space-x-2 disabled:opacity-30 disabled:hover:border-slate/40">
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <span>BACK</span>
+                </button>
+                <button id="nav-next" onclick="navigate(1)" class="px-5 py-2.5 bg-gold hover:bg-gold-light text-navy font-bold text-sm rounded-lg transition flex items-center space-x-2 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <span id="nav-next-text">NEXT</span>
+                    <i class="fa-solid fa-chevron-right" id="nav-next-icon"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        /* --- Audio Context for SFX --- */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSuccessSound() {
+            if (!state.sfxEnabled) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(880.00, audioCtx.currentTime + 0.1); // A5
+            
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        /* --- Global State --- */
+        const MAX_SCREENS = 11;
+        const TOTAL_UNITS = 14; 
+        
+        const defaultState = {
+            screen: 1,
+            score: 0,
+            sfxEnabled: true,
+            ttsEnabled: false,
+            reviewMode: false,
+            synth: window.speechSynthesis,
+            compareTab: 0,
+            debriefTab: 0,
+            
+            // 14 Response Units Tracking:
+            // warmup (1), concepts (4), finalCase (8 subtasks), litLens (1)
+            progressFlags: {
+                warmup: false,
+                concept_hyperbole: false,
+                concept_simile: false,
+                concept_metaphor: false,
+                concept_personification: false,
+                fc0_device: false, fc0_meaning: false,
+                fc1_device: false, fc1_meaning: false,
+                fc2_device: false, fc2_meaning: false,
+                fc3_device: false, fc3_meaning: false,
+                litLens: false
+            },
+
+            // Item States (attempts, resolved, correct, score, selection)
+            items: {
+                warmup: { attempts: 0, resolved: false, correct: false, sel: null },
+                concept_hyperbole: { attempts: 0, resolved: false, correct: false, score: 0, sel: null },
+                concept_simile: { attempts: 0, resolved: false, correct: false, score: 0, sel: null },
+                concept_metaphor: { attempts: 0, resolved: false, correct: false, score: 0, sel: null },
+                concept_personification: { attempts: 0, resolved: false, correct: false, score: 0, sel: null },
+                litLens: { attempts: 0, resolved: false, correct: false, sel: null }
+            },
+            
+            fcIndex: 0, // 0 to 3
+            fcItems: [
+                { devAttempts: 0, devResolved: false, devCorrect: false, devScore: 0, devSel: null,
+                  meanAttempts: 0, meanResolved: false, meanCorrect: false, meanScore: 0, meanSel: null },
+                { devAttempts: 0, devResolved: false, devCorrect: false, devScore: 0, devSel: null,
+                  meanAttempts: 0, meanResolved: false, meanCorrect: false, meanScore: 0, meanSel: null },
+                { devAttempts: 0, devResolved: false, devCorrect: false, devScore: 0, devSel: null,
+                  meanAttempts: 0, meanResolved: false, meanCorrect: false, meanScore: 0, meanSel: null },
+                { devAttempts: 0, devResolved: false, devCorrect: false, devScore: 0, devSel: null,
+                  meanAttempts: 0, meanResolved: false, meanCorrect: false, meanScore: 0, meanSel: null }
+            ],
+            
+            creativeChallengeSaved: false
+        };
+
+        let state = JSON.parse(JSON.stringify(defaultState));
+        // Restore non-serializable properties
+        state.synth = window.speechSynthesis;
+
+        /* --- Final Case Static Content (Exact from Spec) --- */
+        const fcData = [
+            {
+                statement: "Waiting for the bus took forever.",
+                deviceAns: "A",
+                devHint: "Did the wait literally last forever, or did it only feel that way?",
+                devFeedback: "“Forever” exaggerates how long the wait felt.",
+                meaningChoices: [
+                    { k: "A", t: "The wait felt extremely long." },
+                    { k: "B", t: "The bus traveled for an unusually long distance." },
+                    { k: "C", t: "The speaker forgot the bus schedule." },
+                    { k: "D", t: "The bus arrived at its usual time." }
+                ],
+                meaningAns: "A",
+                meanHint: "Think about how speakers use extreme expressions to describe a feeling or experience.",
+                meanFeedback: "“Forever” exaggerates the length of the wait. The speaker means that waiting felt extremely long."
+            },
+            {
+                statement: "The gym was as loud as a thunderstorm.",
+                deviceAns: "B",
+                devHint: "Look for the comparison signal that connects the gym’s noise to the thunderstorm.",
+                devFeedback: "“As loud as” signals a simile.",
+                meaningChoices: [
+                    { k: "A", t: "The gym was extremely loud." },
+                    { k: "B", t: "The gym was crowded but quiet." },
+                    { k: "C", t: "A real thunderstorm happened inside the gym." },
+                    { k: "D", t: "People in the gym were speaking in whispers." }
+                ],
+                meaningAns: "A",
+                meanHint: "Focus on the sound level suggested by the comparison.",
+                meanFeedback: "“As loud as” signals a simile. The comparison emphasizes how noisy the gym was."
+            },
+            {
+                statement: "The playground was a sea of color.",
+                deviceAns: "C",
+                devHint: "Ask whether the playground is literally a sea or is described as one to suggest a shared quality.",
+                devFeedback: "The metaphor describes the colorful playground as a sea.",
+                meaningChoices: [
+                    { k: "A", t: "Many bright colors filled the playground." },
+                    { k: "B", t: "Ocean water covered the playground." },
+                    { k: "C", t: "The playground was painted in only one color." },
+                    { k: "D", t: "The playground was empty of people and objects." }
+                ],
+                meaningAns: "A",
+                meanHint: "Think about what a sea of color would look like in a playground.",
+                meanFeedback: "The metaphor describes the colorful playground as a sea, suggesting that many bright colors filled it."
+            },
+            {
+                statement: "The old gate complained whenever it opened.",
+                deviceAns: "D",
+                devHint: "Look for a human action or feeling given to something nonhuman.",
+                devFeedback: "“Complained” gives the gate a human-like action.",
+                meaningChoices: [
+                    { k: "A", t: "The gate made a creaking sound that seemed like a complaint." },
+                    { k: "B", t: "The gate spoke actual words to the people." },
+                    { k: "C", t: "The gate was locked and could not be opened." },
+                    { k: "D", t: "A person complained about the gate." }
+                ],
+                meaningAns: "A",
+                meanHint: "Imagine the sound an old gate makes as it opens.",
+                meanFeedback: "“Complained” gives the gate a human-like action. It suggests that the gate made a creaking sound."
+            }
+        ];
+
+        /* --- Audio/TTS Helpers --- */
+        function toggleSFX() {
+            state.sfxEnabled = !state.sfxEnabled;
+            const icon = document.getElementById('sfx-icon');
+            icon.className = state.sfxEnabled ? "fa-solid fa-bell text-gold" : "fa-solid fa-bell-slash text-slate-light";
+        }
+        function toggleTTS() {
+            state.ttsEnabled = !state.ttsEnabled;
+            const icon = document.getElementById('tts-icon');
+            const statusText = document.getElementById('tts-status-text');
+            const controls = document.getElementById('tts-controls');
+            if (state.ttsEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-gold';
+                statusText.textContent = 'READ ALOUD: ON';
+                controls.classList.remove('hidden');
+                controls.classList.add('flex');
+            } else {
+                stopTTS();
+                icon.className = 'fa-solid fa-volume-xmark text-crimson';
+                statusText.textContent = 'READ ALOUD: OFF';
+                controls.classList.remove('flex');
+                controls.classList.add('hidden');
+            }
+        }
+        function stopTTS() {
+            if (state.synth && state.synth.speaking) state.synth.cancel();
+        }
+        function playTTSScreen() {
+            if (!state.ttsEnabled || !state.synth) return;
+            stopTTS();
+            const content = document.getElementById('app-container').innerText;
+            const cleanText = content.replace(/<\/?[^>]+(>|$)/g, "");
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.rate = 0.95;
+            state.synth.speak(utterance);
+        }
+
+        /* --- Navigation & Progression --- */
+        function navigate(dir) {
+            stopTTS();
+            if (state.reviewMode && dir === -1) {
+                state.reviewMode = false;
+                state.screen = 11; // Go back to mission complete
+            } else {
+                let nextScreen = state.screen + dir;
+                if (nextScreen >= 1 && nextScreen <= MAX_SCREENS) {
+                    state.screen = nextScreen;
+                }
+            }
+            render();
+        }
+        function jumpTo(screenNum) {
+            stopTTS();
+            state.reviewMode = false;
+            state.screen = screenNum;
+            render();
+        }
+
+        function getProgressCount() {
+            return Object.values(state.progressFlags).filter(Boolean).length;
+        }
+        function updateGlobalScore() {
+            let total = 0;
+            total += state.items.concept_hyperbole.score;
+            total += state.items.concept_simile.score;
+            total += state.items.concept_metaphor.score;
+            total += state.items.concept_personification.score;
+            state.fcItems.forEach(fc => {
+                total += fc.devScore;
+                total += fc.meanScore;
+            });
+            state.score = total;
+            document.getElementById('global-score').textContent = state.score;
+        }
+        function animateScoreEarned(pts, elId) {
+            if (pts <= 0) return;
+            const anchor = document.getElementById(elId) || document.getElementById('score-anchor');
+            const floater = document.createElement('div');
+            floater.className = 'score-float text-xl';
+            floater.textContent = `+${pts}`;
+            anchor.appendChild(floater);
+            setTimeout(() => { if(floater.parentNode) floater.remove(); }, 1000);
+        }
+
+        /* --- Core Interaction Verification --- */
+        function verifyItem(itemKey, selectedVal, correctVal, pts1, pts2) {
+            const item = state.items[itemKey];
+            if (item.resolved) return;
+            
+            item.sel = selectedVal;
+            item.attempts++;
+            
+            const isCorrect = (selectedVal === correctVal);
+            if (isCorrect) {
+                item.resolved = true;
+                item.correct = true;
+                const pts = (item.attempts === 1) ? pts1 : pts2;
+                item.score = pts;
+                state.progressFlags[itemKey] = true;
+                if(pts > 0) {
+                    playSuccessSound();
+                    updateGlobalScore();
+                    animateScoreEarned(pts, 'score-anchor');
+                }
+            } else if (item.attempts >= 2) {
+                item.resolved = true;
+                item.correct = false;
+                item.score = 0;
+                state.progressFlags[itemKey] = true;
+            }
+            render(true);
+        }
+
+        /* --- Final Case Flow --- */
+        function verifyFcDevice(selectedVal) {
+            const fc = state.fcItems[state.fcIndex];
+            const fcDataObj = fcData[state.fcIndex];
+            if (fc.devResolved) return;
+            
+            fc.devSel = selectedVal;
+            fc.devAttempts++;
+            
+            if (selectedVal === fcDataObj.deviceAns) {
+                fc.devResolved = true;
+                fc.devCorrect = true;
+                const pts = (fc.devAttempts === 1) ? 5 : 3;
+                fc.devScore = pts;
+                state.progressFlags[`fc${state.fcIndex}_device`] = true;
+                playSuccessSound();
+                updateGlobalScore();
+                animateScoreEarned(pts, 'score-anchor');
+            } else if (fc.devAttempts >= 2) {
+                fc.devResolved = true;
+                fc.devCorrect = false;
+                fc.devScore = 0;
+                state.progressFlags[`fc${state.fcIndex}_device`] = true;
+            }
+            render(true);
+        }
+
+        function verifyFcMeaning(selectedVal) {
+            const fc = state.fcItems[state.fcIndex];
+            const fcDataObj = fcData[state.fcIndex];
+            if (fc.meanResolved) return;
+            
+            fc.meanSel = selectedVal;
+            fc.meanAttempts++;
+            
+            if (selectedVal === fcDataObj.meaningAns) {
+                fc.meanResolved = true;
+                fc.meanCorrect = true;
+                const pts = (fc.meanAttempts === 1) ? 10 : 5;
+                fc.meanScore = pts;
+                state.progressFlags[`fc${state.fcIndex}_meaning`] = true;
+                playSuccessSound();
+                updateGlobalScore();
+                animateScoreEarned(pts, 'score-anchor');
+            } else if (fc.meanAttempts >= 2) {
+                fc.meanResolved = true;
+                fc.meanCorrect = false;
+                fc.meanScore = 0;
+                state.progressFlags[`fc${state.fcIndex}_meaning`] = true;
+            }
+            render(true);
+        }
+
+        function advanceFcIndex() {
+            if (state.fcIndex < 3) {
+                state.fcIndex++;
+                render();
+            } else {
+                navigate(1);
+            }
+        }
+
+        /* --- UI Render Builders --- */
+        function buildFeedback(attemptCount, isResolved, isCorrect, hintText, correctFeedback, showClueOnFail = true, correctLabel = "") {
+            if (attemptCount === 0) return '';
+            if (attemptCount === 1 && !isResolved) {
+                return `
+                    <div class="bg-navy/80 p-4 rounded-xl border-l-4 border-gold text-sm mt-4 animate-pop">
+                        <div class="flex items-center space-x-2 font-bold text-gold mb-1">
+                            <i class="fa-solid fa-lightbulb"></i><span>Detective Hint:</span>
+                        </div>
+                        <p class="text-ivory">${hintText}</p>
+                    </div>
+                `;
+            }
+            if (isResolved) {
+                if (isCorrect) {
+                    return `
+                        <div class="bg-navy/80 p-4 rounded-xl border-l-4 border-greenish text-sm mt-4 animate-pop">
+                            <div class="flex items-center space-x-2 font-bold text-greenish mb-1">
+                                <i class="fa-solid fa-circle-check"></i><span>Correct Investigation!</span>
+                            </div>
+                            <p class="text-ivory">${correctFeedback}</p>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="bg-navy/80 p-4 rounded-xl border-l-4 border-slate/60 text-sm mt-4 animate-pop">
+                            <div class="flex items-center space-x-2 font-bold text-slate-light mb-1">
+                                <i class="fa-solid fa-graduation-cap"></i><span>Nice try—let’s look at the clue together.</span>
+                            </div>
+                            ${showClueOnFail ? `<p class="text-ivory mb-1">The correct answer is <strong>${correctLabel}</strong>.</p>` : ''}
+                            <p class="text-slate-light">${correctFeedback}</p>
+                        </div>
+                    `;
+                }
+            }
+            return '';
+        }
+
+        function buildChoiceBtn(key, text, isSelected, isResolved, onclickFn) {
+            let classes = "w-full text-left p-3 rounded-xl border text-sm transition font-medium ";
+            if (isSelected) {
+                classes += "bg-gold text-navy border-gold shadow-md";
+            } else {
+                classes += "bg-navy border-slate/40 text-ivory hover:border-gold";
+            }
+            return `<button onclick="${onclickFn}" ${isResolved ? 'disabled' : ''} class="${classes}">${text}</button>`;
+        }
+
+        function buildTokenBtn(text, isSelected, isResolved, onclickFn) {
+            let classes = `token-btn px-4 py-2 rounded-lg border text-sm transition ${isSelected ? 'selected' : 'bg-navy border-slate/40 text-ivory hover:border-gold'}`;
+            return `<button onclick="${onclickFn}" ${isResolved ? 'disabled' : ''} class="${classes}">${text}</button>`;
+        }
+
+        /* --- Screens --- */
+        function s1() {
+            return `
+                <div class="text-center py-8 px-4 bg-navy-light/40 rounded-2xl border border-gold/30 shadow-2xl space-y-6 max-w-2xl mx-auto animate-pop">
+                    <div class="inline-block p-5 bg-navy-dark rounded-full border border-gold/40 shadow-[0_0_15px_rgba(198,161,91,0.2)]">
+                        <i class="fa-solid fa-folder-open text-5xl text-gold"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <span class="text-xs font-detective tracking-widest text-slate-light uppercase border border-slate/40 px-3 py-1 rounded-full">Target: EN9LIT-I-1</span>
+                        <h2 class="text-3xl sm:text-4xl font-extrabold text-ivory font-detective mt-4">THE CASE OF THE VANISHING MEANING</h2>
+                        <p class="text-base sm:text-lg text-gold font-medium italic">Words can mean more than they say. Find the clue behind each expression.</p>
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-slate/30 text-left text-sm space-y-2 max-w-lg mx-auto shadow-inner">
+                        <p class="font-bold text-slate-light uppercase text-xs tracking-wider mb-2 border-b border-slate/50 pb-1">By the end of this mission, you can:</p>
+                        <ol class="list-decimal list-inside text-ivory space-y-1">
+                            <li>Distinguish literal and figurative meaning.</li>
+                            <li>Identify hyperbole, simile, metaphor, and personification.</li>
+                            <li>Explain what a figurative expression means and what feeling or idea it communicates.</li>
+                        </ol>
+                    </div>
+                    <div class="pt-4">
+                        <button onclick="navigate(1)" class="px-8 py-4 bg-gold hover:bg-gold-light text-navy font-bold text-lg rounded-xl shadow-[0_0_15px_rgba(198,161,91,0.4)] transition flex items-center justify-center space-x-2 mx-auto uppercase tracking-wide">
+                            <span>OPEN THE CASE</span>
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function s2() {
+            const st = state.items.warmup;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Think about whether a person can really have a geographical mountain made of homework.", 
+                "The speaker does not have a real mountain. The phrase exaggerates the amount of homework.", true, "Figurative");
+            
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="border-b border-slate/30 pb-4">
+                        <h2 class="text-xl sm:text-2xl font-bold text-ivory">Literal or Figurative?</h2>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-navy-dark p-4 rounded-xl border border-slate/30">
+                            <h3 class="font-bold text-gold mb-1"><i class="fa-solid fa-book mr-1"></i> Literal meaning</h3>
+                            <p class="text-slate-light">Words say exactly what they state.</p>
+                        </div>
+                        <div class="bg-navy-dark p-4 rounded-xl border border-slate/30">
+                            <h3 class="font-bold text-gold mb-1"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Figurative meaning</h3>
+                            <p class="text-slate-light">Words express an idea through imaginative language.</p>
+                        </div>
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold">
+                        <span class="text-xs text-slate-light uppercase">Example:</span>
+                        <p class="text-xl font-serif italic text-ivory mt-1">“I have a mountain of homework.”</p>
+                    </div>
+                    <div class="space-y-4 pt-2">
+                        <p class="text-sm font-semibold text-ivory">Is this expression literal or figurative?</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            ${buildChoiceBtn('Literal', 'A. Literal', st.sel === 'A', st.resolved, "verifyItem('warmup', 'A', 'B', 0, 0)")}
+                            ${buildChoiceBtn('Figurative', 'B. Figurative', st.sel === 'B', st.resolved, "verifyItem('warmup', 'B', 'B', 0, 0)")}
+                        </div>
+                    </div>
+                    ${fb}
+                </div>
+            `;
+        }
+
+        function s3() {
+            const st = state.items.concept_hyperbole;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Think about whether a backpack can really weigh one thousand tons. What feeling is the speaker trying to emphasize?", 
+                "“A thousand tons” is an extreme exaggeration. The speaker means that the backpack feels very heavy.", true, "A");
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="flex justify-between items-start border-b border-slate/30 pb-4">
+                        <div>
+                            <span class="text-xs text-gold uppercase tracking-widest font-bold">Concept 1</span>
+                            <h2 class="text-2xl font-bold text-ivory mt-1">Hyperbole: An Exaggerated Clue</h2>
+                        </div>
+                        <span class="bg-navy-dark border border-gold/40 text-gold text-xs px-3 py-1 rounded-full font-bold">10 Pts</span>
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-slate/30 flex items-center space-x-4">
+                        <i class="fa-solid fa-scale-unbalanced text-3xl text-gold opacity-80"></i>
+                        <p class="text-sm text-slate-light"><strong class="text-ivory">Hyperbole</strong> is deliberate exaggeration.</p>
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center">
+                        <p class="text-xl font-serif italic text-gold">“My backpack weighs a thousand tons.”</p>
+                    </div>
+                    <div class="space-y-3 pt-2">
+                        <p class="text-sm font-semibold text-ivory">What does the exaggeration mean?</p>
+                        <div class="space-y-2">
+                            ${buildChoiceBtn('A', 'A. The backpack feels extremely heavy.', st.sel === 'A', st.resolved, "verifyItem('concept_hyperbole', 'A', 'A', 10, 5)")}
+                            ${buildChoiceBtn('B', 'B. The backpack weighs exactly one thousand tons.', st.sel === 'B', st.resolved, "verifyItem('concept_hyperbole', 'B', 'A', 10, 5)")}
+                            ${buildChoiceBtn('C', 'C. The backpack is too large to fit in a locker.', st.sel === 'C', st.resolved, "verifyItem('concept_hyperbole', 'C', 'A', 10, 5)")}
+                            ${buildChoiceBtn('D', 'D. The speaker is describing an empty backpack.', st.sel === 'D', st.resolved, "verifyItem('concept_hyperbole', 'D', 'A', 10, 5)")}
+                        </div>
+                    </div>
+                    ${fb}
+                </div>
+            `;
+        }
+
+        function s4() {
+            const st = state.items.concept_simile;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Look for the words that connect the voice to the bell.", 
+                "“As clear as” signals the comparison. The speaker means that the voice is very clear.", true, "as clear as");
+            const tokens = ["Her", "voice", "was", "as clear as", "a bell."];
+            
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="flex justify-between items-start border-b border-slate/30 pb-4">
+                        <div>
+                            <span class="text-xs text-gold uppercase tracking-widest font-bold">Concept 2</span>
+                            <h2 class="text-2xl font-bold text-ivory mt-1">Simile: A Comparison Clue</h2>
+                        </div>
+                        <span class="bg-navy-dark border border-gold/40 text-gold text-xs px-3 py-1 rounded-full font-bold">10 Pts</span>
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-slate/30 flex items-center space-x-4">
+                        <i class="fa-solid fa-equals text-3xl text-gold opacity-80"></i>
+                        <p class="text-sm text-slate-light"><strong class="text-ivory">Simile</strong> compares unlike things, often using <em>like</em> or <em>as</em>.</p>
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center">
+                        <p class="text-xl font-serif italic text-gold">“Her voice was as clear as a bell.”</p>
+                    </div>
+                    <div class="space-y-4 pt-2 text-center">
+                        <p class="text-sm font-semibold text-ivory text-left">Select the words that signal the comparison.</p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            ${tokens.map(t => buildTokenBtn(t, st.sel === t, st.resolved, `verifyItem('concept_simile', '${t}', 'as clear as', 10, 5)`)).join('')}
+                        </div>
+                    </div>
+                    ${fb}
+                </div>
+            `;
+        }
+
+        function s5() {
+            const st = state.items.concept_metaphor;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Think about how a river moves. What similar movement might the students be making?", 
+                "The hallway is not literally a river. The metaphor suggests a continuous flow of students.", true, "A");
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="flex justify-between items-start border-b border-slate/30 pb-4">
+                        <div>
+                            <span class="text-xs text-gold uppercase tracking-widest font-bold">Concept 3</span>
+                            <h2 class="text-2xl font-bold text-ivory mt-1">Metaphor: A Direct Comparison</h2>
+                        </div>
+                        <span class="bg-navy-dark border border-gold/40 text-gold text-xs px-3 py-1 rounded-full font-bold">10 Pts</span>
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-slate/30 flex items-center space-x-4">
+                        <i class="fa-solid fa-water text-3xl text-gold opacity-80"></i>
+                        <p class="text-sm text-slate-light"><strong class="text-ivory">Metaphor</strong> describes one thing as another to suggest a shared quality.</p>
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center">
+                        <p class="text-xl font-serif italic text-gold">“The hallway was a river of students.”</p>
+                    </div>
+                    <div class="space-y-3 pt-2">
+                        <p class="text-sm font-semibold text-ivory">What idea does “river” suggest here?</p>
+                        <div class="space-y-2">
+                            ${buildChoiceBtn('A', 'A. Students moved continuously through the hallway.', st.sel === 'A', st.resolved, "verifyItem('concept_metaphor', 'A', 'A', 10, 5)")}
+                            ${buildChoiceBtn('B', 'B. The hallway was filled with actual water.', st.sel === 'B', st.resolved, "verifyItem('concept_metaphor', 'B', 'A', 10, 5)")}
+                            ${buildChoiceBtn('C', 'C. The students were standing still in one place.', st.sel === 'C', st.resolved, "verifyItem('concept_metaphor', 'C', 'A', 10, 5)")}
+                            ${buildChoiceBtn('D', 'D. The hallway was silent because no one was present.', st.sel === 'D', st.resolved, "verifyItem('concept_metaphor', 'D', 'A', 10, 5)")}
+                        </div>
+                    </div>
+                    ${fb}
+                </div>
+            `;
+        }
+
+        function s6() {
+            const st = state.items.concept_personification;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Look for the action that people can do when they speak softly.", 
+                "“Whispered” is a human-like action. The wind made a soft sound.", true, "whispered");
+            const tokens = ["The wind", "whispered", "through the window."];
+            
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="flex justify-between items-start border-b border-slate/30 pb-4">
+                        <div>
+                            <span class="text-xs text-gold uppercase tracking-widest font-bold">Concept 4</span>
+                            <h2 class="text-2xl font-bold text-ivory mt-1">Personification: A Human-Like Action</h2>
+                        </div>
+                        <span class="bg-navy-dark border border-gold/40 text-gold text-xs px-3 py-1 rounded-full font-bold">10 Pts</span>
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-slate/30 flex items-center space-x-4">
+                        <i class="fa-solid fa-user-astronaut text-3xl text-gold opacity-80"></i>
+                        <p class="text-sm text-slate-light"><strong class="text-ivory">Personification</strong> gives a human quality or action to something nonhuman.</p>
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center">
+                        <p class="text-xl font-serif italic text-gold">“The wind whispered through the window.”</p>
+                    </div>
+                    <div class="space-y-4 pt-2 text-center">
+                        <p class="text-sm font-semibold text-ivory text-left">Select the human-like action.</p>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            ${tokens.map(t => buildTokenBtn(t, st.sel === t, st.resolved, `verifyItem('concept_personification', '${t}', 'whispered', 10, 5)`)).join('')}
+                        </div>
+                    </div>
+                    ${fb}
+                </div>
+            `;
+        }
+
+        function s7() {
+            const tab = state.compareTab;
+            const d = [
+                { title: "Literal vs. Hyperbole", ex1: "“The bus arrived after ten minutes.”", ex2: "“I waited a century for the bus.”", expl: "The first statement gives a literal time; the second exaggerates the wait to show that it felt extremely long." },
+                { title: "Simile vs. Metaphor", ex1: "“The classroom was like a beehive.”", ex2: "“The classroom was a beehive.”", expl: "The simile uses “like” to make the comparison; the metaphor directly describes the classroom as a beehive." },
+                { title: "Ordinary action vs. Personification", ex1: "“The alarm rang at six.”", ex2: "“The alarm screamed at six.”", expl: "The first describes an ordinary action; the second gives the alarm a human-like action." }
+            ];
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="border-b border-slate/30 pb-4">
+                        <h2 class="text-xl sm:text-2xl font-bold text-ivory">Compare the Clues</h2>
+                        <p class="text-sm text-slate-light mt-1">Some figures of speech look alike. Open one comparison at a time.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 border-b border-slate/40 pb-4">
+                        ${d.map((t, i) => `
+                            <button onclick="state.compareTab=${i}; render(true);" class="px-4 py-2 text-sm font-bold rounded-t-lg border-b-2 transition ${tab === i ? 'text-gold border-gold bg-navy-dark' : 'text-slate-light border-transparent hover:text-ivory'}">${t.title}</button>
+                        `).join('')}
+                    </div>
+                    <div class="bg-navy-dark p-5 rounded-xl border border-gold/20 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="p-4 bg-navy border border-slate/30 rounded-lg">
+                                <p class="text-xs text-slate-light uppercase font-bold mb-1">Example 1</p>
+                                <p class="text-ivory italic font-serif">${d[tab].ex1}</p>
+                            </div>
+                            <div class="p-4 bg-navy border border-slate/30 rounded-lg">
+                                <p class="text-xs text-gold uppercase font-bold mb-1">Example 2</p>
+                                <p class="text-gold italic font-serif">${d[tab].ex2}</p>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-navy-light/30 border-l-4 border-gold rounded-r-lg text-sm text-ivory">
+                            <strong class="text-gold">Explanation:</strong> ${d[tab].expl}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function s8() {
+            // "Review Missed Case Items" Mode Logic: show missed final case items in a list.
+            if (state.reviewMode) {
+                const missed = state.fcItems.map((fc, i) => ({fc, data: fcData[i], idx: i}))
+                                .filter(item => (!item.fc.devCorrect || !item.fc.meanCorrect));
+                
+                if (missed.length === 0) {
+                    return `<div class="p-6 text-center text-ivory animate-pop">You did not miss any case items! <br><button onclick="state.reviewMode=false; render();" class="mt-4 px-4 py-2 bg-gold text-navy rounded-lg font-bold">Go Back</button></div>`;
+                }
+
+                let html = `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="border-b border-slate/30 pb-4">
+                        <h2 class="text-xl font-bold text-ivory text-crimson"><i class="fa-solid fa-file-circle-xmark mr-2"></i>Review Missed Case Items</h2>
+                    </div>
+                    <div class="space-y-6">`;
+                
+                missed.forEach(m => {
+                    const devAnsName = m.data.deviceAns === 'A' ? 'Hyperbole' : m.data.deviceAns === 'B' ? 'Simile' : m.data.deviceAns === 'C' ? 'Metaphor' : 'Personification';
+                    const meanAnsText = m.data.meaningChoices.find(c => c.k === m.data.meaningAns).t;
+                    html += `
+                        <div class="bg-navy-dark p-4 rounded-xl border border-slate/50">
+                            <p class="font-serif italic text-gold text-lg mb-2">“${m.data.statement}”</p>
+                            <div class="text-sm space-y-1">
+                                <p><span class="text-slate-light">Correct Device:</span> <strong class="text-ivory">${devAnsName}</strong> <span class="text-xs italic text-slate-light">(${m.data.devFeedback})</span></p>
+                                <p><span class="text-slate-light">Correct Meaning:</span> <strong class="text-ivory">${meanAnsText}</strong> <span class="text-xs italic text-slate-light">(${m.data.meanFeedback})</span></p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+                return html;
+            }
+
+            // Normal Final Case Mode
+            const idx = state.fcIndex;
+            const data = fcData[idx];
+            const fcState = state.fcItems[idx];
+            
+            let devHtml = '';
+            let meanHtml = '';
+
+            // Device Step
+            const devFb = buildFeedback(fcState.devAttempts, fcState.devResolved, fcState.devCorrect, data.devHint, data.devFeedback, true, data.deviceAns === 'A'?'Hyperbole':data.deviceAns==='B'?'Simile':data.deviceAns==='C'?'Metaphor':'Personification');
+            
+            devHtml = `
+                <div class="space-y-3 p-4 bg-navy-dark border border-slate/30 rounded-xl relative">
+                    <p class="text-sm font-bold text-gold uppercase tracking-wide">Step 1: Identify Device</p>
+                    <p class="text-sm text-ivory">Which figure of speech is used?</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${buildChoiceBtn('A', 'A. Hyperbole', fcState.devSel==='A', fcState.devResolved, `verifyFcDevice('A')`)}
+                        ${buildChoiceBtn('B', 'B. Simile', fcState.devSel==='B', fcState.devResolved, `verifyFcDevice('B')`)}
+                        ${buildChoiceBtn('C', 'C. Metaphor', fcState.devSel==='C', fcState.devResolved, `verifyFcDevice('C')`)}
+                        ${buildChoiceBtn('D', 'D. Personification', fcState.devSel==='D', fcState.devResolved, `verifyFcDevice('D')`)}
+                    </div>
+                    ${devFb}
+                </div>
+            `;
+
+            // Meaning Step (only shown if device step resolved)
+            if (fcState.devResolved) {
+                const meanFb = buildFeedback(fcState.meanAttempts, fcState.meanResolved, fcState.meanCorrect, data.meanHint, data.meanFeedback, false);
+                let choiceHtml = data.meaningChoices.map(c => 
+                    buildChoiceBtn(c.k, `${c.k}. ${c.t}`, fcState.meanSel === c.k, fcState.meanResolved, `verifyFcMeaning('${c.k}')`)
+                ).join('');
+                
+                meanHtml = `
+                    <div class="space-y-3 p-4 bg-navy border border-gold/40 shadow-[0_0_15px_rgba(198,161,91,0.1)] rounded-xl mt-4 animate-pop">
+                        <p class="text-sm font-bold text-gold uppercase tracking-wide">Step 2: Interpret Meaning</p>
+                        <p class="text-sm text-ivory">What does the expression mean?</p>
+                        <div class="space-y-2">
+                            ${choiceHtml}
+                        </div>
+                        ${meanFb}
+                    </div>
+                `;
+            }
+
+            let nextBtnHtml = '';
+            if (fcState.devResolved && fcState.meanResolved) {
+                const btnText = (idx < 3) ? "NEXT EXPRESSION" : "PROCEED TO DEBRIEF";
+                nextBtnHtml = `
+                    <div class="mt-6 text-right animate-pop">
+                        <button onclick="advanceFcIndex()" class="px-6 py-3 bg-gold hover:bg-gold-light text-navy font-bold rounded-xl shadow-[0_0_10px_rgba(198,161,91,0.3)] transition inline-flex items-center space-x-2">
+                            <span>${btnText}</span><i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl animate-pop">
+                    <div class="flex justify-between items-start border-b border-slate/30 pb-4 mb-4">
+                        <div>
+                            <span class="text-xs text-gold uppercase tracking-widest font-bold">Final Case: The School Fair</span>
+                            <h2 class="text-2xl font-bold text-ivory mt-1">Expression ${idx + 1} of 4</h2>
+                        </div>
+                        <span class="bg-navy-dark border border-gold/40 text-gold text-xs px-3 py-1 rounded-full font-bold text-center leading-tight">15 Pts<br><span class="text-[9px] opacity-70 font-normal">Total</span></span>
+                    </div>
+                    
+                    <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center shadow-inner mb-6">
+                        <p class="text-xl sm:text-2xl font-serif italic text-gold">“${data.statement}”</p>
+                    </div>
+
+                    ${devHtml}
+                    ${meanHtml}
+                    ${nextBtnHtml}
+                </div>
+            `;
+        }
+
+        function s9() {
+            const tab = state.debriefTab;
+            const d = [
+                { dev: "Hyperbole", exp: "“Waiting for the bus took forever.”", expl: "“Forever” is an exaggeration. It shows that the wait felt extremely long." },
+                { dev: "Simile", exp: "“The gym was as loud as a thunderstorm.”", expl: "“As loud as” compares the gym’s noise with a thunderstorm to emphasize how loud it was." },
+                { dev: "Metaphor", exp: "“The playground was a sea of color.”", expl: "The metaphor directly describes the colorful playground as a sea, suggesting that many bright colors filled it." },
+                { dev: "Personification", exp: "“The old gate complained whenever it opened.”", expl: "The gate is described as if it could complain. The expression suggests that it made a creaking sound." }
+            ];
+
+            const st = state.items.litLens;
+            const fb = buildFeedback(st.attempts, st.resolved, st.correct, 
+                "Think about what a bird can represent when it remains with someone through difficult conditions.", 
+                "The metaphor presents hope as a bird that stays with a person, suggesting comfort and resilience even during hardship.", true, "A");
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="border-b border-slate/30 pb-4">
+                        <span class="text-xs text-gold uppercase tracking-widest font-bold">Debrief</span>
+                        <h2 class="text-2xl font-bold text-ivory mt-1">Case Debrief</h2>
+                        <p class="text-sm text-slate-light mt-1">Review the clue and the meaning it communicates.</p>
+                    </div>
+                    
+                    <!-- Debrief Tabs -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 border-b border-slate/40 pb-4">
+                        ${d.map((t, i) => `
+                            <button onclick="state.debriefTab=${i}; render(true);" class="py-2 text-xs sm:text-sm font-bold rounded-lg border border-slate/50 transition ${tab === i ? 'text-navy bg-gold border-gold' : 'text-slate-light bg-navy hover:text-ivory'}">${t.dev}</button>
+                        `).join('')}
+                    </div>
+                    <div class="bg-navy-dark p-4 rounded-xl border border-gold/20 space-y-2 text-sm shadow-inner">
+                        <p class="text-gold italic font-serif text-lg">“${d[tab].exp}”</p>
+                        <p class="text-ivory"><strong class="text-slate-light uppercase text-xs tracking-wide">Explanation:</strong> ${d[tab].expl}</p>
+                    </div>
+
+                    <div class="bg-navy p-4 rounded-xl border-l-4 border-slate/50 text-sm">
+                        <strong class="text-ivory block mb-1">Reflection:</strong>
+                        <span class="italic text-slate-light block mb-2">Why should readers explain the intended meaning instead of only naming a figure of speech?</span>
+                        <p class="text-gold font-medium">Explaining the intended meaning shows what the writer wants readers to understand, imagine, or feel.</p>
+                    </div>
+
+                    <!-- Literary Lens -->
+                    <div class="mt-6 border-t border-slate/30 pt-6">
+                        <h3 class="text-xl font-bold text-ivory mb-2 flex items-center"><i class="fa-solid fa-book-open-reader text-gold mr-2"></i>Literary Lens</h3>
+                        <div class="bg-navy-dark p-5 rounded-xl border-l-4 border-gold text-center mb-4">
+                            <p class="text-lg font-serif italic text-ivory">“Hope” is the thing with feathers—<br>That perches in the soul—</p>
+                            <p class="text-xs text-slate-light mt-2">— Emily Dickinson, “‘Hope’ is the thing with feathers”</p>
+                        </div>
+                        <div class="space-y-3">
+                            <p class="text-sm font-semibold text-ivory">How does the metaphor communicate a feeling or value?</p>
+                            <div class="space-y-2">
+                                ${buildChoiceBtn('A', 'A. Hope can remain with a person and offer comfort even during difficult times.', st.sel === 'A', st.resolved, "verifyItem('litLens', 'A', 'A', 0, 0)")}
+                                ${buildChoiceBtn('B', 'B. Hope disappears whenever a person faces difficulty.', st.sel === 'B', st.resolved, "verifyItem('litLens', 'B', 'A', 0, 0)")}
+                                ${buildChoiceBtn('C', 'C. Hope is a physical bird living inside the body.', st.sel === 'C', st.resolved, "verifyItem('litLens', 'C', 'A', 0, 0)")}
+                                ${buildChoiceBtn('D', 'D. Hope depends only on favorable weather.', st.sel === 'D', st.resolved, "verifyItem('litLens', 'D', 'A', 0, 0)")}
+                            </div>
+                        </div>
+                        ${fb}
+                    </div>
+                </div>
+            `;
+        }
+
+        function s10() {
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 animate-pop">
+                    <div class="border-b border-slate/30 pb-4">
+                        <span class="text-xs text-gold uppercase tracking-widest font-bold">Optional Activity</span>
+                        <h2 class="text-2xl font-bold text-ivory mt-1">Creative Challenge: Write Your Own Figure</h2>
+                        <p class="text-sm text-slate-light mt-1">Create one original sentence about school life using either a simile or personification.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-navy-dark p-4 rounded-xl border border-slate/30">
+                            <h3 class="font-bold text-gold mb-1">Simile</h3>
+                            <p class="text-slate-light">Compare a school object, place, or experience to something unlike it. You may use <em>like</em> or <em>as</em>.</p>
+                        </div>
+                        <div class="bg-navy-dark p-4 rounded-xl border border-slate/30">
+                            <h3 class="font-bold text-gold mb-1">Personification</h3>
+                            <p class="text-slate-light">Give a nonhuman school object, place, or natural element a human action or quality.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <textarea id="creative-text" rows="4" class="w-full bg-navy-dark border border-slate/40 rounded-xl p-4 text-ivory focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold transition resize-none placeholder-slate-light/50" placeholder="Type your original sentence here..."></textarea>
+                        
+                        <div class="flex items-center space-x-3">
+                            <button onclick="document.getElementById('save-msg').classList.remove('hidden'); state.creativeChallengeSaved = true;" class="px-5 py-2.5 bg-gold hover:bg-gold-light text-navy font-bold rounded-lg transition shadow-md">Save My Sentence</button>
+                            <span id="save-msg" class="${state.creativeChallengeSaved ? '' : 'hidden'} text-sm text-greenish font-bold animate-pop"><i class="fa-solid fa-check mr-1"></i>Saved!</span>
+                        </div>
+                        <p class="text-xs text-slate-light italic mt-2">*This activity is unscored and does not affect your badges.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function s11() {
+            const sc = state.score;
+            let msg = "";
+            if (sc >= 80) msg = "Case completed! You interpreted the clues with strong evidence.";
+            else if (sc >= 50) msg = "Case completed. Review the comparisons and replay the mission to strengthen your interpretations.";
+            else msg = "Case completed. Revisit the concept lessons and try the investigation again.";
+
+            const allFcResolved = state.fcItems.every(fc => fc.devResolved && fc.meanResolved);
+
+            const badges = [
+                { id: "Hyperbole Hunter", i: "fa-magnifying-glass-plus", e: state.items.concept_hyperbole.correct },
+                { id: "Simile Spotter", i: "fa-equals", e: state.items.concept_simile.correct },
+                { id: "Metaphor Mapper", i: "fa-map", e: state.items.concept_metaphor.correct },
+                { id: "Personification Pro", i: "fa-user-gear", e: state.items.concept_personification.correct },
+                { id: "Case Finisher", i: "fa-flag-checkered", e: allFcResolved },
+                { id: "Meaning Decoder", i: "fa-medal", e: sc >= 80 }
+            ];
+
+            return `
+                <div class="bg-navy-light/40 rounded-2xl border border-slate/40 p-6 shadow-xl space-y-6 text-center animate-pop max-w-2xl mx-auto">
+                    <div class="inline-block p-4 bg-navy-dark rounded-full border border-gold/40 shadow-[0_0_15px_rgba(198,161,91,0.2)]">
+                        <i class="fa-solid fa-clipboard-check text-5xl text-gold"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h2 class="text-3xl font-extrabold text-ivory font-detective">CASE CLOSED: MEANING DECODED!</h2>
+                        <p class="text-sm font-medium ${sc >= 80 ? 'text-greenish' : 'text-gold'}">${msg}</p>
+                    </div>
+                    
+                    <div class="bg-navy-dark p-6 rounded-xl border border-gold/30 inline-block shadow-inner min-w-[200px]">
+                        <p class="text-xs font-bold text-slate-light uppercase tracking-widest mb-1">Final Score</p>
+                        <p class="text-5xl font-black text-gold">${sc}<span class="text-2xl text-slate-light">/100</span></p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate/30 text-left">
+                        <h3 class="text-sm font-bold text-slate-light uppercase tracking-widest mb-4 text-center">Badge Cabinet</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            ${badges.map(b => `
+                                <div class="p-3 rounded-lg border text-center flex flex-col items-center justify-center space-y-1 transition ${b.e ? 'bg-navy-dark border-gold' : 'bg-navy/30 border-slate/30 opacity-50 grayscale'}">
+                                    <i class="fa-solid ${b.i} text-xl ${b.e ? 'text-gold' : 'text-slate-light'}"></i>
+                                    <p class="text-[10px] font-bold ${b.e ? 'text-ivory' : 'text-slate-light'} leading-tight uppercase mt-1">${b.id}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex flex-col sm:flex-row flex-wrap justify-center gap-3">
+                        <button onclick="jumpTo(7)" class="px-4 py-2 text-xs font-bold rounded-lg border border-slate/40 text-ivory bg-navy hover:border-gold transition uppercase">Review The Comparisons</button>
+                        <button onclick="location.reload()" class="px-4 py-2 text-xs font-bold rounded-lg border border-gold text-navy bg-gold hover:bg-gold-light transition uppercase">Replay Mission</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* --- Main Render Engine --- */
+        function render(preventScroll = false) {
+            const container = document.getElementById('app-container');
+            const navBack = document.getElementById('nav-back');
+            const navNext = document.getElementById('nav-next');
+            const navNextText = document.getElementById('nav-next-text');
+            const navNextIcon = document.getElementById('nav-next-icon');
+            const progText = document.getElementById('progress-text');
+            const progBar = document.getElementById('progress-bar-fill');
+            const screenLabel = document.getElementById('screen-label');
+
+            let content = '';
+            
+            // Screen router
+            switch(state.screen) {
+                case 1: content = s1(); break;
+                case 2: content = s2(); break;
+                case 3: content = s3(); break;
+                case 4: content = s4(); break;
+                case 5: content = s5(); break;
+                case 6: content = s6(); break;
+                case 7: content = s7(); break;
+                case 8: content = s8(); break;
+                case 9: content = s9(); break;
+                case 10: content = s10(); break;
+                case 11: content = s11(); break;
+            }
+            container.innerHTML = content;
+
+            // Footer logic
+            const currentProg = getProgressCount();
+            progText.textContent = `${currentProg} of ${TOTAL_UNITS}`;
+            progBar.style.width = `${(currentProg/TOTAL_UNITS)*100}%`;
+            
+            // Nav logic
+            if (state.reviewMode) {
+                screenLabel.textContent = "Review Mode";
+                navBack.style.display = 'flex';
+                navBack.disabled = false;
+                navNext.style.display = 'none';
+            } else {
+                screenLabel.textContent = state.screen === 11 ? 'MISSION COMPLETE' : `SCREEN ${state.screen}`;
+                
+                navBack.style.display = 'flex';
+                navNext.style.display = 'flex';
+                
+                navBack.disabled = (state.screen === 1);
+                
+                if (state.screen === MAX_SCREENS) {
+                    navNext.style.display = 'none';
+                } else {
+                    navNextText.textContent = 'NEXT';
+                    navNextIcon.className = "fa-solid fa-chevron-right";
+                    navNext.disabled = false;
+                    
+                    // Specific screen unlock rules
+                    if (state.screen === 2 && !state.items.warmup.resolved) navNext.disabled = true;
+                    if (state.screen === 3 && !state.items.concept_hyperbole.resolved) navNext.disabled = true;
+                    if (state.screen === 4 && !state.items.concept_simile.resolved) navNext.disabled = true;
+                    if (state.screen === 5 && !state.items.concept_metaphor.resolved) navNext.disabled = true;
+                    if (state.screen === 6 && !state.items.concept_personification.resolved) navNext.disabled = true;
+                    
+                    // Final case Next is handled internally by "Next Expression" inline button to prevent skipping
+                    if (state.screen === 8) {
+                        navNext.disabled = true; // Force inline progression
+                    }
+                    if (state.screen === 9 && !state.items.litLens.resolved) navNext.disabled = true;
+
+                    // Final check: don't allow entering 11 until progress is 14/14
+                    if (state.screen === 10) {
+                        if (currentProg < TOTAL_UNITS) {
+                            navNext.disabled = true;
+                            navNextText.textContent = 'COMPLETE REQUIRED TASKS';
+                            navNextIcon.className = "fa-solid fa-lock";
+                        } else {
+                            navNextText.textContent = 'FINISH MISSION';
+                            navNextIcon.className = "fa-solid fa-flag-checkered";
+                        }
+                    }
+                }
+            }
+
+            // Scroll to top
+            if (!preventScroll) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            render();
+        });
+
+    </script>
+</body>
+</html>
